@@ -1,0 +1,353 @@
+@use '@/styles/variables.scss' as *;
+
+.page {
+  min-height: 100vh;
+  padding-bottom: 160rpx;
+}
+
+.header {
+  background: linear-gradient(135deg, $color-primary 0%, $color-primary-light 100%);
+  padding: 48rpx $page-padding 100rpx;
+  position: relative;
+}
+
+.avatar {
+  width: 140rpx;
+  height: 140rpx;
+  @include flex-center;
+  background: rgba(255, 255, 255, 0.25);
+  border-radius: $radius-round;
+  font-size: 56rpx;
+  font-weight: $font-weight-bold;
+  color: $color-text-white;
+  margin-bottom: $spacing-md;
+}
+
+.name {
+  font-size: 44rpx;
+  font-weight: $font-weight-bold;
+  color: $color-text-white;
+  margin-bottom: $spacing-xs;
+}
+
+.subInfo {
+  display: flex;
+  align-items: center;
+  gap: $spacing-md;
+}
+
+.subTag {
+  padding: 6rpx 16rpx;
+  background: rgba(255, 255, 255, 0.2);
+  border-radius: $radius-xs;
+  font-size: $font-size-xs;
+  color: $color-text-white;
+}
+
+.content {
+  padding: 0 $page-padding;
+  margin-top: -60rpx;
+}
+
+.card {
+  background: $color-bg-card;
+  border-radius: $radius-lg;
+  padding: $spacing-lg;
+  margin-bottom: $spacing-md;
+  box-shadow: $shadow-card;
+}
+
+.cardTitle {
+  font-size: $font-size-md;
+  font-weight: $font-weight-semibold;
+  color: $color-text-primary;
+  margin-bottom: $spacing-md;
+  display: flex;
+  align-items: center;
+  gap: $spacing-xs;
+}
+
+.infoRow {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: $spacing-md 0;
+  border-bottom: 1rpx solid $color-divider;
+
+  &:last-child {
+    border-bottom: none;
+  }
+}
+
+.infoLabel {
+  font-size: $font-size-sm;
+  color: $color-text-secondary;
+}
+
+.infoValue {
+  font-size: $font-size-sm;
+  color: $color-text-primary;
+  font-weight: $font-weight-medium;
+  display: flex;
+  align-items: center;
+  gap: $spacing-sm;
+}
+
+.callLink {
+  color: $color-success;
+  text-decoration: underline;
+}
+
+.lessonBox {
+  background: linear-gradient(135deg, $color-primary-bg 0%, #fff 100%);
+  border-radius: $radius-lg;
+  padding: $spacing-xl;
+  margin-bottom: $spacing-md;
+  border: 2rpx solid rgba(79, 70, 229, 0.1);
+}
+
+.lessonHeader {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  margin-bottom: $spacing-lg;
+}
+
+.lessonMain {
+  display: flex;
+  align-items: baseline;
+  gap: $spacing-sm;
+}
+
+.lessonNum {
+  font-size: 64rpx;
+  font-weight: $font-weight-bold;
+  color: $color-primary;
+  line-height: 1;
+}
+
+.lessonUnit {
+  font-size: $font-size-md;
+  color: $color-text-secondary;
+}
+
+.lessonTag {
+  padding: 6rpx 20rpx;
+  border-radius: $radius-round;
+  font-size: $font-size-xs;
+  font-weight: $font-weight-semibold;
+
+  &.normal {
+    background: $color-success-bg;
+    color: $color-success;
+  }
+
+  &.warning {
+    background: $color-warning-bg;
+    color: $color-warning;
+  }
+
+  &.danger {
+    background: $color-error-bg;
+    color: $color-error;
+  }
+}
+
+.lessonStats {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: $spacing-md;
+}
+
+.lessonStatItem {
+  background: rgba(255, 255, 255, 0.8);
+  border-radius: $radius-md;
+  padding: $spacing-md;
+}
+
+.lessonStatNum {
+  font-size: $font-size-xl;
+  font-weight: $font-weight-bold;
+  color: $color-text-primary;
+  margin-bottom: 4rpx;
+}
+
+.lessonStatLabel {
+  font-size: $font-size-xs;
+  color: $color-text-tertiary;
+}
+
+.progressWrap {
+  margin-top: $spacing-lg;
+}
+
+.progressBar {
+  height: 16rpx;
+  background: $color-divider;
+  border-radius: $radius-round;
+  overflow: hidden;
+  margin-bottom: $spacing-sm;
+}
+
+.progressFill {
+  height: 100%;
+  background: linear-gradient(90deg, $color-primary 0%, $color-primary-light 100%);
+  border-radius: $radius-round;
+  transition: width $transition-slow;
+
+  &.warning {
+    background: linear-gradient(90deg, $color-warning 0%, #FBBF24 100%);
+  }
+
+  &.danger {
+    background: linear-gradient(90deg, $color-error 0%, #F87171 100%);
+  }
+}
+
+.progressInfo {
+  display: flex;
+  justify-content: space-between;
+  font-size: $font-size-xs;
+  color: $color-text-tertiary;
+}
+
+.historyItem {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: $spacing-md 0;
+  border-bottom: 1rpx solid $color-divider;
+
+  &:last-child {
+    border-bottom: none;
+  }
+}
+
+.historyLeft {
+  display: flex;
+  align-items: center;
+  gap: $spacing-md;
+}
+
+.historyIcon {
+  width: 56rpx;
+  height: 56rpx;
+  @include flex-center;
+  border-radius: $radius-round;
+  font-size: 24rpx;
+}
+
+.historyInfo {
+  flex: 1;
+}
+
+.historyTitle {
+  font-size: $font-size-sm;
+  font-weight: $font-weight-medium;
+  color: $color-text-primary;
+  margin-bottom: 4rpx;
+}
+
+.historyDate {
+  font-size: $font-size-xs;
+  color: $color-text-tertiary;
+}
+
+.historyValue {
+  font-size: $font-size-sm;
+  font-weight: $font-weight-semibold;
+
+  &.minus {
+    color: $color-error;
+  }
+
+  &.plus {
+    color: $color-success;
+  }
+}
+
+.bottomBar {
+  position: fixed;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  padding: $spacing-md $page-padding;
+  padding-bottom: calc(#{$spacing-md} + env(safe-area-inset-bottom));
+  background: $color-bg-card;
+  box-shadow: 0 -4rpx 16rpx rgba(0, 0, 0, 0.06);
+  display: flex;
+  gap: $spacing-md;
+}
+
+.btn {
+  @include button-reset;
+  flex: 1;
+  height: $button-height-lg;
+  border-radius: $radius-button;
+  font-size: $font-size-md;
+  font-weight: $font-weight-semibold;
+  transition: all $transition-base;
+
+  &:active {
+    opacity: 0.85;
+    transform: scale(0.98);
+  }
+
+  &.primary {
+    background: linear-gradient(135deg, $color-primary 0%, $color-primary-light 100%);
+    color: $color-text-white;
+  }
+
+  &.secondary {
+    background: $color-bg-hover;
+    color: $color-text-secondary;
+  }
+
+  &.danger {
+    background: $color-error-bg;
+    color: $color-error;
+  }
+}
+
+.renewInput {
+  display: flex;
+  align-items: center;
+  gap: $spacing-md;
+  margin-top: $spacing-md;
+}
+
+.renewField {
+  flex: 1;
+  background: $color-bg-hover;
+  border-radius: $radius-md;
+  padding: $spacing-sm $spacing-md;
+}
+
+.renewLabel {
+  font-size: $font-size-xs;
+  color: $color-text-tertiary;
+  margin-bottom: 4rpx;
+}
+
+.renewValueInput {
+  font-size: $font-size-lg;
+  font-weight: $font-weight-semibold;
+  color: $color-text-primary;
+  background: transparent;
+  width: 100%;
+}
+
+.renewBtn {
+  @include button-reset;
+  height: 88rpx;
+  padding: 0 32rpx;
+  background: $color-success;
+  border-radius: $radius-md;
+  color: $color-text-white;
+  font-size: $font-size-sm;
+  font-weight: $font-weight-semibold;
+
+  &:active {
+    opacity: 0.85;
+  }
+}

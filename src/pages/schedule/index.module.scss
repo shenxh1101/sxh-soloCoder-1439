@@ -1,0 +1,183 @@
+@use '@/styles/variables.scss' as *;
+
+.page {
+  min-height: 100vh;
+  padding-bottom: 140rpx;
+}
+
+.weekNav {
+  background: $color-bg-card;
+  padding: $spacing-md 0;
+  margin-bottom: $spacing-md;
+  box-shadow: $shadow-card;
+  position: sticky;
+  top: 0;
+  z-index: 10;
+}
+
+.weekHeader {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0 $page-padding;
+  margin-bottom: $spacing-md;
+}
+
+.weekNavBtn {
+  width: 64rpx;
+  height: 64rpx;
+  @include flex-center;
+  background: $color-bg-hover;
+  border-radius: $radius-round;
+  font-size: 28rpx;
+  color: $color-text-secondary;
+  transition: all $transition-base;
+
+  &:active {
+    background: $color-primary-bg;
+    color: $color-primary;
+  }
+}
+
+.weekTitle {
+  font-size: $font-size-lg;
+  font-weight: $font-weight-semibold;
+  color: $color-text-primary;
+}
+
+.weekDays {
+  display: grid;
+  grid-template-columns: repeat(7, 1fr);
+  padding: 0 16rpx;
+}
+
+.dayItem {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding: $spacing-sm 4rpx;
+  border-radius: $radius-md;
+  margin: 0 4rpx;
+  transition: all $transition-base;
+
+  &.active {
+    background: $color-primary;
+    .dayName, .dayNum {
+      color: $color-text-white;
+    }
+  }
+
+  &.today {
+    .dayNum {
+      color: $color-primary;
+      font-weight: $font-weight-bold;
+    }
+    &.active .dayNum {
+      color: $color-text-white;
+    }
+  }
+
+  &.hasCourse::after {
+    content: '';
+    width: 8rpx;
+    height: 8rpx;
+    background: $color-success;
+    border-radius: 50%;
+    margin-top: 4rpx;
+  }
+
+  &.active.hasCourse::after {
+    background: $color-text-white;
+  }
+}
+
+.dayName {
+  font-size: $font-size-xs;
+  color: $color-text-tertiary;
+  margin-bottom: 4rpx;
+}
+
+.dayNum {
+  font-size: $font-size-md;
+  color: $color-text-secondary;
+}
+
+.classroomTabs {
+  display: flex;
+  gap: $spacing-sm;
+  padding: 0 $page-padding;
+  margin-bottom: $spacing-md;
+}
+
+.classroomTab {
+  flex: 1;
+  padding: 20rpx;
+  background: $color-bg-card;
+  border-radius: $radius-md;
+  text-align: center;
+  box-shadow: $shadow-card;
+  border: 2rpx solid transparent;
+  transition: all $transition-base;
+
+  &.active {
+    border-color: $color-primary;
+    background: $color-primary-bg;
+  }
+}
+
+.classroomName {
+  font-size: $font-size-sm;
+  font-weight: $font-weight-semibold;
+  color: $color-text-primary;
+  margin-bottom: 4rpx;
+}
+
+.classroomCount {
+  font-size: $font-size-xs;
+  color: $color-text-tertiary;
+
+  .active & {
+    color: $color-primary;
+  }
+}
+
+.coursesList {
+  padding: 0 $page-padding;
+}
+
+.dateGroup {
+  margin-bottom: $spacing-xl;
+}
+
+.dateGroupTitle {
+  font-size: $font-size-sm;
+  font-weight: $font-weight-semibold;
+  color: $color-text-secondary;
+  margin-bottom: $spacing-md;
+  padding-left: $spacing-sm;
+  border-left: 6rpx solid $color-primary;
+}
+
+.fab {
+  position: fixed;
+  right: 40rpx;
+  bottom: 140rpx;
+  width: 112rpx;
+  height: 112rpx;
+  @include flex-center;
+  background: linear-gradient(135deg, $color-primary 0%, $color-primary-light 100%);
+  border-radius: $radius-round;
+  box-shadow: 0 8rpx 24rpx rgba(79, 70, 229, 0.4);
+  z-index: 100;
+  transition: all $transition-base;
+
+  &:active {
+    transform: scale(0.92);
+  }
+}
+
+.fabText {
+  font-size: 56rpx;
+  color: $color-text-white;
+  font-weight: 300;
+}

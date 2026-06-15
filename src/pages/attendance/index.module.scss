@@ -1,0 +1,298 @@
+@use '@/styles/variables.scss' as *;
+
+.page {
+  min-height: 100vh;
+  padding: $spacing-md $page-padding 40rpx;
+}
+
+.dateTabs {
+  display: flex;
+  gap: $spacing-sm;
+  margin-bottom: $spacing-lg;
+  overflow-x: auto;
+  @include scroll-x-container;
+}
+
+.dateTab {
+  @include scroll-x-item(auto);
+  padding: 16rpx 32rpx;
+  background: $color-bg-card;
+  border-radius: $radius-button;
+  text-align: center;
+  white-space: nowrap;
+  border: 2rpx solid transparent;
+  box-shadow: $shadow-card;
+  transition: all $transition-base;
+
+  &.active {
+    background: $color-primary;
+    border-color: $color-primary;
+  }
+}
+
+.dateTabDay {
+  font-size: $font-size-xs;
+  color: $color-text-tertiary;
+  margin-bottom: 4rpx;
+
+  .active & {
+    color: rgba(255, 255, 255, 0.8);
+  }
+}
+
+.dateTabDate {
+  font-size: $font-size-md;
+  font-weight: $font-weight-semibold;
+  color: $color-text-primary;
+
+  .active & {
+    color: $color-text-white;
+  }
+}
+
+.courseSection {
+  margin-bottom: $spacing-xl;
+}
+
+.sectionHeader {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: $spacing-md;
+}
+
+.sectionTitle {
+  font-size: $font-size-lg;
+  font-weight: $font-weight-semibold;
+  color: $color-text-primary;
+}
+
+.studentList {
+  background: $color-bg-card;
+  border-radius: $radius-lg;
+  padding: $spacing-md;
+  box-shadow: $shadow-card;
+}
+
+.studentItem {
+  display: flex;
+  align-items: center;
+  padding: $spacing-md;
+  border-radius: $radius-md;
+  margin-bottom: $spacing-sm;
+  background: $color-bg-hover;
+  transition: all $transition-base;
+
+  &:last-child {
+    margin-bottom: 0;
+  }
+}
+
+.studentAvatar {
+  width: 80rpx;
+  height: 80rpx;
+  @include flex-center;
+  border-radius: $radius-round;
+  margin-right: $spacing-md;
+  flex-shrink: 0;
+  font-size: 32rpx;
+  font-weight: $font-weight-bold;
+  color: $color-text-white;
+}
+
+.studentInfo {
+  flex: 1;
+  min-width: 0;
+}
+
+.studentNameRow {
+  display: flex;
+  align-items: center;
+  gap: $spacing-sm;
+  margin-bottom: 6rpx;
+}
+
+.studentName {
+  font-size: $font-size-md;
+  font-weight: $font-weight-semibold;
+  color: $color-text-primary;
+}
+
+.remainBadge {
+  font-size: 20rpx;
+  padding: 2rpx 12rpx;
+  border-radius: $radius-xs;
+  font-weight: $font-weight-medium;
+
+  &.normal {
+    background: $color-success-bg;
+    color: $color-success;
+  }
+
+  &.warning {
+    background: $color-warning-bg;
+    color: $color-warning;
+  }
+
+  &.danger {
+    background: $color-error-bg;
+    color: $color-error;
+  }
+}
+
+.studentPhone {
+  font-size: $font-size-xs;
+  color: $color-text-tertiary;
+}
+
+.statusBtns {
+  display: flex;
+  gap: $spacing-xs;
+  flex-shrink: 0;
+}
+
+.statusBtn {
+  padding: 12rpx 16rpx;
+  border-radius: $radius-sm;
+  font-size: $font-size-xs;
+  font-weight: $font-weight-medium;
+  text-align: center;
+  min-width: 64rpx;
+  transition: all $transition-base;
+  border: 2rpx solid transparent;
+
+  &:active {
+    opacity: 0.8;
+    transform: scale(0.95);
+  }
+
+  &.present {
+    background: $color-bg-hover;
+    color: $color-text-tertiary;
+    border-color: $color-border;
+
+    &.active {
+      background: $color-success;
+      color: $color-text-white;
+      border-color: $color-success;
+    }
+  }
+
+  &.absent {
+    background: $color-bg-hover;
+    color: $color-text-tertiary;
+    border-color: $color-border;
+
+    &.active {
+      background: $color-error;
+      color: $color-text-white;
+      border-color: $color-error;
+    }
+  }
+
+  &.leave {
+    background: $color-bg-hover;
+    color: $color-text-tertiary;
+    border-color: $color-border;
+
+    &.active {
+      background: $color-warning;
+      color: $color-text-white;
+      border-color: $color-warning;
+    }
+  }
+}
+
+.progressCard {
+  background: $color-bg-card;
+  border-radius: $radius-lg;
+  padding: $spacing-lg;
+  margin-bottom: $spacing-lg;
+  box-shadow: $shadow-card;
+}
+
+.progressRow {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: $spacing-md;
+}
+
+.progressTitle {
+  font-size: $font-size-md;
+  font-weight: $font-weight-semibold;
+  color: $color-text-primary;
+}
+
+.progressStats {
+  display: flex;
+  gap: $spacing-md;
+}
+
+.progressStat {
+  display: flex;
+  align-items: center;
+  gap: 6rpx;
+}
+
+.progressDot {
+  width: 16rpx;
+  height: 16rpx;
+  border-radius: 50%;
+}
+
+.progressLabel {
+  font-size: $font-size-xs;
+  color: $color-text-secondary;
+}
+
+.progressNum {
+  font-size: $font-size-xs;
+  font-weight: $font-weight-bold;
+  color: $color-text-primary;
+}
+
+.progressBar {
+  height: 16rpx;
+  background: $color-divider;
+  border-radius: $radius-round;
+  overflow: hidden;
+  display: flex;
+}
+
+.progressSegment {
+  height: 100%;
+  transition: width $transition-slow;
+}
+
+.quickActionBar {
+  display: flex;
+  gap: $spacing-md;
+  margin-bottom: $spacing-md;
+}
+
+.quickBtn {
+  flex: 1;
+  @include flex-center;
+  padding: 20rpx;
+  background: $color-bg-card;
+  border-radius: $radius-md;
+  box-shadow: $shadow-card;
+  gap: $spacing-sm;
+  transition: all $transition-base;
+
+  &:active {
+    opacity: 0.8;
+    transform: scale(0.98);
+  }
+}
+
+.quickBtnIcon {
+  font-size: 32rpx;
+}
+
+.quickBtnText {
+  font-size: $font-size-sm;
+  font-weight: $font-weight-medium;
+  color: $color-text-secondary;
+}

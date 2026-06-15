@@ -1,0 +1,89 @@
+@use '@/styles/variables.scss' as *;
+
+.card {
+  display: flex;
+  align-items: center;
+  background: $color-warning-bg;
+  border-radius: $radius-lg;
+  padding: $spacing-md $spacing-lg;
+  margin-bottom: $spacing-sm;
+  border: 2rpx solid rgba(245, 158, 11, 0.2);
+  transition: all $transition-base;
+
+  &:active {
+    opacity: 0.92;
+    transform: scale(0.99);
+  }
+}
+
+.icon {
+  width: 64rpx;
+  height: 64rpx;
+  @include flex-center;
+  background: rgba(255, 255, 255, 0.6);
+  border-radius: $radius-round;
+  margin-right: $spacing-md;
+  flex-shrink: 0;
+}
+
+.iconText {
+  font-size: 32rpx;
+}
+
+.info {
+  flex: 1;
+  min-width: 0;
+}
+
+.topRow {
+  display: flex;
+  align-items: center;
+  gap: $spacing-sm;
+  margin-bottom: 6rpx;
+}
+
+.name {
+  font-size: $font-size-md;
+  font-weight: $font-weight-semibold;
+  color: $color-text-primary;
+}
+
+.classTag {
+  font-size: $font-size-xs;
+  color: $color-warning;
+  background: rgba(255, 255, 255, 0.5);
+  padding: 2rpx 12rpx;
+  border-radius: $radius-xs;
+  font-weight: $font-weight-medium;
+}
+
+.warnText {
+  font-size: $font-size-xs;
+  color: $color-text-secondary;
+}
+
+.remainCount {
+  font-size: $font-size-md;
+  font-weight: $font-weight-bold;
+  color: $color-error;
+}
+
+.callBtn {
+  width: 72rpx;
+  height: 72rpx;
+  @include flex-center;
+  background: $color-success;
+  border-radius: $radius-round;
+  margin-left: $spacing-md;
+  flex-shrink: 0;
+  box-shadow: 0 4rpx 12rpx rgba(16, 185, 129, 0.3);
+
+  &:active {
+    opacity: 0.85;
+    transform: scale(0.95);
+  }
+}
+
+.callText {
+  font-size: 32rpx;
+}

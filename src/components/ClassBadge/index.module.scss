@@ -1,0 +1,50 @@
+@use '@/styles/variables.scss' as *;
+
+.badge {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: $radius-xs;
+  white-space: nowrap;
+}
+
+.sm {
+  padding: 4rpx 12rpx;
+}
+
+.md {
+  padding: 8rpx 20rpx;
+}
+
+.text {
+  font-size: $font-size-xs;
+  font-weight: $font-weight-medium;
+}
+
+.piano {
+  background: $color-piano-bg;
+  .text {
+    color: $color-piano;
+  }
+}
+
+.art {
+  background: $color-art-bg;
+  .text {
+    color: $color-art;
+  }
+}
+
+.dance {
+  background: $color-dance-bg;
+  .text {
+    color: $color-dance;
+  }
+}
+
+.calligraphy {
+  background: $color-calligraphy-bg;
+  .text {
+    color: $color-calligraphy;
+  }
+}

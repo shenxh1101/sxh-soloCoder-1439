@@ -1,0 +1,118 @@
+@use '@/styles/variables.scss' as *;
+
+.card {
+  background: $color-bg-card;
+  border-radius: $radius-lg;
+  margin-bottom: $spacing-md;
+  box-shadow: $shadow-card;
+  display: flex;
+  overflow: hidden;
+  transition: all $transition-base;
+  position: relative;
+
+  &:active {
+    opacity: 0.92;
+    transform: scale(0.99);
+  }
+
+  &.past {
+    opacity: 0.65;
+  }
+
+  &.compact {
+    .content {
+      padding: $spacing-md;
+    }
+  }
+}
+
+.leftBar {
+  width: 8rpx;
+  flex-shrink: 0;
+}
+
+.piano .leftBar { background: $color-piano; }
+.art .leftBar { background: $color-art; }
+.dance .leftBar { background: $color-dance; }
+.calligraphy .leftBar { background: $color-calligraphy; }
+
+.content {
+  flex: 1;
+  padding: $spacing-lg;
+  min-width: 0;
+}
+
+.header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: $spacing-sm;
+}
+
+.classroomTag {
+  background: $color-info-bg;
+  padding: 4rpx 16rpx;
+  border-radius: $radius-xs;
+}
+
+.classroomText {
+  font-size: $font-size-xs;
+  color: $color-info;
+  font-weight: $font-weight-medium;
+}
+
+.timeRow {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: $spacing-sm;
+}
+
+.time {
+  font-size: $font-size-xl;
+  font-weight: $font-weight-bold;
+  color: $color-text-primary;
+}
+
+.date {
+  font-size: $font-size-xs;
+  color: $color-text-tertiary;
+
+  &.todayDate {
+    color: $color-primary;
+    font-weight: $font-weight-semibold;
+  }
+}
+
+.infoRow {
+  display: flex;
+  gap: $spacing-xl;
+  margin-bottom: $spacing-sm;
+}
+
+.infoItem {
+  display: flex;
+  align-items: center;
+  gap: $spacing-xs;
+}
+
+.infoLabel {
+  font-size: $font-size-xs;
+  color: $color-text-tertiary;
+}
+
+.infoValue {
+  font-size: $font-size-sm;
+  color: $color-text-secondary;
+  font-weight: $font-weight-medium;
+}
+
+.studentRow {
+  padding-top: $spacing-sm;
+  border-top: 1rpx solid $color-divider;
+}
+
+.studentCount {
+  font-size: $font-size-xs;
+  color: $color-text-secondary;
+}

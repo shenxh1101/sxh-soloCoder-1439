@@ -1,0 +1,174 @@
+@use '@/styles/variables.scss' as *;
+
+.card {
+  background: $color-bg-card;
+  border-radius: $radius-lg;
+  padding: $spacing-lg;
+  margin-bottom: $spacing-md;
+  box-shadow: $shadow-card;
+  transition: all $transition-base;
+
+  &:active {
+    opacity: 0.92;
+    transform: scale(0.99);
+  }
+
+  &.warning {
+    border: 2rpx solid $color-warning;
+  }
+
+  &.exhausted {
+    border: 2rpx solid $color-error;
+  }
+}
+
+.header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  margin-bottom: $spacing-md;
+}
+
+.nameRow {
+  display: flex;
+  align-items: center;
+  gap: $spacing-sm;
+}
+
+.name {
+  font-size: $font-size-lg;
+  font-weight: $font-weight-semibold;
+  color: $color-text-primary;
+}
+
+.ageTag {
+  background: $color-primary-bg;
+  padding: 4rpx 16rpx;
+  border-radius: $radius-xs;
+}
+
+.ageText {
+  font-size: $font-size-xs;
+  color: $color-primary;
+  font-weight: $font-weight-medium;
+}
+
+.phoneRow {
+  display: flex;
+  align-items: center;
+  gap: $spacing-sm;
+  margin-bottom: $spacing-lg;
+  padding: $spacing-sm $spacing-md;
+  background: $color-bg-hover;
+  border-radius: $radius-md;
+}
+
+.phoneIcon {
+  width: 48rpx;
+  height: 48rpx;
+  @include flex-center;
+  background: $color-success-bg;
+  border-radius: $radius-round;
+}
+
+.phoneIconText {
+  font-size: 24rpx;
+}
+
+.phone {
+  font-size: $font-size-md;
+  color: $color-success;
+  font-weight: $font-weight-medium;
+}
+
+.lessonRow {
+  margin-bottom: $spacing-md;
+}
+
+.lessonInfo {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  margin-bottom: $spacing-sm;
+}
+
+.lessonLabel {
+  font-size: $font-size-sm;
+  color: $color-text-secondary;
+}
+
+.lessonValue {
+  font-size: $font-size-xl;
+  font-weight: $font-weight-bold;
+  color: $color-success;
+
+  &.warningValue {
+    color: $color-warning;
+  }
+
+  &.exhaustedValue {
+    color: $color-error;
+  }
+}
+
+.progressWrap {
+  display: flex;
+  align-items: center;
+  gap: $spacing-md;
+}
+
+.progressBar {
+  flex: 1;
+  height: 12rpx;
+  background: $color-divider;
+  border-radius: $radius-round;
+  overflow: hidden;
+}
+
+.progressFill {
+  height: 100%;
+  background: linear-gradient(90deg, $color-primary 0%, $color-primary-light 100%);
+  border-radius: $radius-round;
+  transition: width $transition-slow;
+
+  &.progressWarning {
+    background: linear-gradient(90deg, $color-warning 0%, lighten($color-warning, 10%) 100%);
+  }
+
+  &.progressExhausted {
+    background: linear-gradient(90deg, $color-error 0%, lighten($color-error, 10%) 100%);
+  }
+}
+
+.progressText {
+  font-size: $font-size-xs;
+  color: $color-text-tertiary;
+  min-width: 100rpx;
+  text-align: right;
+}
+
+.warningBanner {
+  margin-top: $spacing-md;
+  padding: $spacing-sm $spacing-md;
+  background: $color-warning-bg;
+  border-radius: $radius-sm;
+}
+
+.warningText {
+  font-size: $font-size-xs;
+  color: $color-warning;
+  font-weight: $font-weight-medium;
+}
+
+.exhaustedBanner {
+  margin-top: $spacing-md;
+  padding: $spacing-sm $spacing-md;
+  background: $color-error-bg;
+  border-radius: $radius-sm;
+}
+
+.exhaustedText {
+  font-size: $font-size-xs;
+  color: $color-error;
+  font-weight: $font-weight-medium;
+}

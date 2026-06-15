@@ -5,7 +5,9 @@ import {
   ClassType,
   CLASS_TYPE_MAP,
   WARNING_LESSON_THRESHOLD,
-  RechargeRecord
+  RechargeRecord,
+  LessonLogType,
+  LESSON_LOG_TYPE_MAP
 } from '@/types';
 import {
   ExportItem,
@@ -44,6 +46,9 @@ const ExportPage: React.FC = () => {
   const [rangeEnd, setRangeEnd] = useState(dayjs().endOf('month').format('YYYY-MM-DD'));
   const [lessonsRangeStart, setLessonsRangeStart] = useState(dayjs().startOf('month').format('YYYY-MM-DD'));
   const [lessonsRangeEnd, setLessonsRangeEnd] = useState(dayjs().endOf('month').format('YYYY-MM-DD'));
+  const [logClassFilter, setLogClassFilter] = useState<ClassType | 'all'>('all');
+  const [logTypeFilter, setLogTypeFilter] = useState<LessonLogType | 'all'>('all');
+  const [logOperatorFilter, setLogOperatorFilter] = useState<string>('all');
 
   const lastRecharges = useMemo(() => {
     const map: Record<string, RechargeRecord | undefined> = {};
@@ -64,28 +69,75 @@ const ExportPage: React.FC = () => {
   }, [lessonsMode, lessonsRangeStart, lessonsRangeEnd, students, lessonLogs, rechargeRecords, lastRecharges, classFilter]);
 
   const attendanceResults = useMemo<ExportItem[]>(() => {
-    return buildBatchAttendanceByDate(attendanceDate, courses, students, attendanceRecords);
-  }, [attendanceDate, courses, students, attendanceRecords]);
+    return buildBatchAttendanceByDate(attendanceDate, courses, students, lessonLogs, attendanceRecords);
+  }, [attendanceDate, courses, students, lessonLogs, attendanceRecords]);
 
   const summaryResults = useMemo<ExportItem[]>(() => {
     return buildBatchCourseSummaryByRange(rangeStart, rangeEnd, courses, attendanceRecords);
   }, [rangeStart, rangeEnd, courses, attendanceRecords]);
 
-  const logsResults = useMemo<ExportItem[]>(() => {
-    const logs = getLessonLogsByDateRange(rangeStart, rangeEnd);
-    const result: ExportItem[] = [];
-    result.push(buildLessonLogExport(logs, students, `${dayjs(rangeStart).format('M月D日')}-${dayjs(rangeEnd).format('M月D日')}课时流水`));
-
-    const rechargeLogs = rechargeRecords.filter((r) => {
-      const d = dayjs(r.createdAt);
-      return d.isAfter(dayjs(rangeStart).subtract(1, 'day')) && d.isBefore(dayjs(rangeEnd).add(1, 'day'));
+  const availableOperators = useMemo(() => {
+    const operators = new Set<string>();
+    lessonLogs.forEach((l) => {
+      if (l.operator) operators.add(l.operator);
     });
+    rechargeRecords.forEach((r) => {
+      if (r.operator) operators.add(r.operator);
+    });
+    return Array.from(operators);
+  }, [lessonLogs, rechargeRecords]);
+
+  const logsResults = useMemo<ExportItem[]>(() => {
+    let logs = getLessonLogsByDateRange(rangeStart, rangeEnd);
+
+    if (logClassFilter !== 'all') {
+      const classStudentIds = new Set(
+        students.filter((s) => s.classType === logClassFilter).map((s) => s.id)
+      );
+      logs = logs.filter((l) => classStudentIds.has(l.studentId));
+    }
+
+    if (logTypeFilter !== 'all') {
+      logs = logs.filter((l) => l.type === logTypeFilter);
+    }
+
+    if (logOperatorFilter !== 'all') {
+      logs = logs.filter((l) => l.operator === logOperatorFilter);
+    }
+
+    const filterDesc = [
+      logClassFilter !== 'all' ? CLASS_TYPE_MAP[logClassFilter] : '',
+      logTypeFilter !== 'all' ? LESSON_LOG_TYPE_MAP[logTypeFilter] : '',
+      logOperatorFilter !== 'all' ? logOperatorFilter : ''
+    ].filter(Boolean).join('·');
+
+    const title = `${dayjs(rangeStart).format('M月D日')}-${dayjs(rangeEnd).format('M月D日')}${filterDesc ? '[' + filterDesc + ']' : ''}课时流水`;
+
+    const result: ExportItem[] = [];
+    result.push(buildLessonLogExport(logs, students, title));
+
+    let rechargeLogs = rechargeRecords.filter((r) => {
+      const d = dayjs(r.createdAt);
+      return d.isAfter(dayjs(rangeStart).startOf('day')) && d.isBefore(dayjs(rangeEnd).endOf('day'));
+    });
+
+    if (logClassFilter !== 'all') {
+      const classStudentIds = new Set(
+        students.filter((s) => s.classType === logClassFilter).map((s) => s.id)
+      );
+      rechargeLogs = rechargeLogs.filter((r) => classStudentIds.has(r.studentId));
+    }
+
+    if (logOperatorFilter !== 'all') {
+      rechargeLogs = rechargeLogs.filter((r) => r.operator === logOperatorFilter);
+    }
+
     if (rechargeLogs.length > 0) {
-      result.push(buildRechargeExport(students, rechargeLogs));
+      result.push(buildRechargeExport(students, rechargeLogs, logClassFilter === 'all' ? undefined : logClassFilter));
     }
 
     return result;
-  }, [rangeStart, rangeEnd, lessonLogs, students, rechargeRecords, getLessonLogsByDateRange]);
+  }, [rangeStart, rangeEnd, lessonLogs, students, rechargeRecords, getLessonLogsByDateRange, logClassFilter, logTypeFilter, logOperatorFilter]);
 
   const rechargeResults = useMemo<ExportItem[]>(() => {
     if (classFilter === 'all') {
@@ -387,13 +439,13 @@ const ExportPage: React.FC = () => {
         <View className={styles.section}>
           <Text className={styles.sectionTitle}>课时流水</Text>
           <Text className={styles.sectionSubtitle}>
-            查看所有课时变动记录，续课、上课、调整都有明细，方便查账
+            多维度筛选课时变动记录，续课、上课、调整都有明细，方便月底核账
           </Text>
 
           <View className={styles.statBadges}>
             <View className={styles.statBadge}>
               变动笔数
-              <Text className={styles.statBadgeNum}>{lessonLogs.length}</Text>
+              <Text className={styles.statBadgeNum}>{logsResults[0]?.count || 0}</Text>
             </View>
             <View className={styles.statBadge}>
               范围天数
@@ -436,6 +488,76 @@ const ExportPage: React.FC = () => {
               </Text>
             ))}
           </View>
+
+          <Text className={styles.label}>按班级筛选：</Text>
+          <View className={styles.classPicker}>
+            {(['all', 'piano', 'art', 'dance', 'calligraphy'] as const).map((opt) => (
+              <Text
+                key={opt}
+                className={classnames(
+                  styles.classChip,
+                  logClassFilter === opt && styles.active
+                )}
+                onClick={() => setLogClassFilter(opt)}
+              >
+                {opt === 'all' ? '全部班级' : CLASS_TYPE_MAP[opt]}
+              </Text>
+            ))}
+          </View>
+
+          <Text className={styles.label}>按变动类型筛选：</Text>
+          <View className={styles.classPicker}>
+            <Text
+              className={classnames(
+                styles.classChip,
+                logTypeFilter === 'all' && styles.active
+              )}
+              onClick={() => setLogTypeFilter('all')}
+            >
+              全部类型
+            </Text>
+            {(Object.keys(LESSON_LOG_TYPE_MAP) as LessonLogType[]).map((type) => (
+              <Text
+                key={type}
+                className={classnames(
+                  styles.classChip,
+                  logTypeFilter === type && styles.active
+                )}
+                onClick={() => setLogTypeFilter(type)}
+              >
+                {LESSON_LOG_TYPE_MAP[type]}
+              </Text>
+            ))}
+          </View>
+
+          {availableOperators.length > 0 && (
+            <>
+              <Text className={styles.label}>按操作人筛选：</Text>
+              <View className={styles.classPicker}>
+                <Text
+                  className={classnames(
+                    styles.classChip,
+                    logOperatorFilter === 'all' && styles.active
+                  )}
+                  onClick={() => setLogOperatorFilter('all')}
+                >
+                  全部操作人
+                </Text>
+                {availableOperators.map((op) => (
+                  <Text
+                    key={op}
+                    className={classnames(
+                      styles.classChip,
+                      logOperatorFilter === op && styles.active
+                    )}
+                    onClick={() => setLogOperatorFilter(op)}
+                  >
+                    {op}
+                  </Text>
+                ))}
+              </View>
+            </>
+          )}
         </View>
       )}
 

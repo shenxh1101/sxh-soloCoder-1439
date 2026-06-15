@@ -13,6 +13,104 @@ import {
 } from '@/types';
 import dayjs from 'dayjs';
 
+export interface LessonState {
+  total: number;
+  used: number;
+  remaining: number;
+  cumulativeTotal: number;
+  cumulativeUsed: number;
+}
+
+export const getStudentLessonsAtTime = (
+  student: Student,
+  logs: LessonLog[],
+  targetTime: string | dayjs.Dayjs
+): LessonState => {
+  const target = dayjs(targetTime);
+  const afterLogs = logs
+    .filter(l => l.studentId === student.id && dayjs(l.createdAt).isAfter(target))
+    .sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
+
+  let total = student.totalLessons;
+  let used = student.usedLessons;
+  let cumulativeTotal = student.cumulativeTotal || student.totalLessons;
+  let cumulativeUsed = student.cumulativeUsed || student.usedLessons;
+
+  for (const log of afterLogs) {
+    total -= log.deltaTotal;
+    used -= log.deltaUsed;
+    if (log.type === 'renew') {
+      cumulativeTotal -= log.deltaTotal;
+    }
+    if (log.type === 'attendance_present') {
+      cumulativeUsed -= log.deltaUsed;
+    }
+  }
+
+  total = Math.max(0, total);
+  used = Math.max(0, Math.min(total, used));
+
+  return {
+    total,
+    used,
+    remaining: Math.max(0, total - used),
+    cumulativeTotal: Math.max(cumulativeTotal, total),
+    cumulativeUsed: Math.max(cumulativeUsed, used)
+  };
+};
+
+export interface PeriodStats {
+  startTotal: number;
+  startUsed: number;
+  startRemaining: number;
+  periodAttended: number;
+  periodCancelled: number;
+  periodRenew: number;
+  periodAdjust: number;
+  endTotal: number;
+  endUsed: number;
+  endRemaining: number;
+}
+
+export const getStudentPeriodStats = (
+  student: Student,
+  logs: LessonLog[],
+  startDate: string,
+  endDate: string
+): PeriodStats => {
+  const startState = getStudentLessonsAtTime(student, logs, dayjs(startDate).startOf('day'));
+  const endState = getStudentLessonsAtTime(student, logs, dayjs(endDate).endOf('day'));
+  const periodLogs = logs.filter(l => {
+    const d = dayjs(l.createdAt);
+    return d.isAfter(dayjs(startDate).startOf('day')) && d.isBefore(dayjs(endDate).endOf('day'));
+  });
+  const periodAttended = periodLogs
+    .filter(l => l.type === 'attendance_present' && l.studentId === student.id)
+    .reduce((sum, l) => sum + l.deltaUsed, 0);
+  const periodCancelled = periodLogs
+    .filter(l => l.type === 'attendance_cancel' && l.studentId === student.id)
+    .reduce((sum, l) => sum + Math.abs(l.deltaUsed), 0);
+  const periodRenew = periodLogs
+    .filter(l => l.type === 'renew' && l.studentId === student.id)
+    .reduce((sum, l) => sum + l.deltaTotal, 0);
+  const periodAdjust = periodLogs
+    .filter(l => (l.type === 'adjust_total' || l.type === 'adjust_used' || l.type === 'manual') && l.studentId === student.id)
+    .reduce((sum, l) => sum + l.deltaTotal - l.deltaUsed, 0);
+
+  return {
+    startTotal: startState.total,
+    startUsed: startState.used,
+    startRemaining: startState.remaining,
+    periodAttended,
+    periodCancelled,
+    periodRenew,
+    periodAdjust,
+    endTotal: endState.total,
+    endUsed: endState.used,
+    endRemaining: endState.remaining
+  };
+};
+
 export interface ExportItem {
   name: string;
   description: string;
@@ -164,6 +262,7 @@ export const buildBatchRemainingLessons = (
 export const buildAttendanceExport = (
   course: Course,
   students: Student[],
+  lessonLogs: LessonLog[],
   allAttendanceRecords?: AttendanceRecord[]
 ): ExportItem => {
   const records = allAttendanceRecords
@@ -173,6 +272,7 @@ export const buildAttendanceExport = (
     records.map((a) => [a.studentId, a])
   );
 
+  const courseTime = `${course.date} ${course.startTime}`;
   const dateStr = dayjs(course.date).format('YYYY-MM-DD');
   const className = CLASS_TYPE_MAP[course.classType];
   const ageName = AGE_GROUP_MAP[course.ageGroup];
@@ -187,7 +287,8 @@ export const buildAttendanceExport = (
     '课前剩余课时',
     '出勤状态',
     '课后剩余课时',
-    '点名时间'
+    '点名时间',
+    '数据口径'
   ];
 
   const rows = course.studentIds
@@ -204,8 +305,12 @@ export const buildAttendanceExport = (
         : '未点名';
 
       const isPresent = record?.status === 'present';
-      const beforeRemaining = isPresent ? student.remainingLessons + 1 : student.remainingLessons;
-      const afterRemaining = student.remainingLessons;
+      const stateAtCourse = getStudentLessonsAtTime(student, lessonLogs, courseTime);
+      const beforeRemaining = stateAtCourse.remaining;
+      const afterRemaining = isPresent ? beforeRemaining - 1 : beforeRemaining;
+
+      const isHistorical = dayjs(courseTime).isBefore(dayjs().startOf('day'));
+      const dataSource = isHistorical ? '历史回溯' : '实时数据';
 
       return [
         idx + 1,
@@ -214,7 +319,8 @@ export const buildAttendanceExport = (
         beforeRemaining,
         status,
         afterRemaining,
-        record ? dayjs(record.checkedAt).format('HH:mm') : '-'
+        record ? dayjs(record.checkedAt).format('HH:mm') : '-',
+        dataSource
       ].join(',');
     })
     .filter(Boolean);
@@ -263,6 +369,7 @@ export const buildBatchAttendanceByDate = (
   date: string,
   courses: Course[],
   students: Student[],
+  lessonLogs: LessonLog[],
   allAttendanceRecords?: AttendanceRecord[]
 ): ExportItem[] => {
   const dayCourses = courses.filter((c) => c.date === date);
@@ -326,7 +433,7 @@ export const buildBatchAttendanceByDate = (
   dayCourses
     .sort((a, b) => a.startTime.localeCompare(b.startTime))
     .forEach((c) => {
-      result.push(buildAttendanceExport(c, students, allAttendanceRecords));
+      result.push(buildAttendanceExport(c, students, lessonLogs, allAttendanceRecords));
     });
 
   return result;
@@ -405,9 +512,10 @@ export const exportRemainingLessonsList = (
 export const exportAttendanceSheet = (
   course: Course,
   students: Student[],
+  lessonLogs: LessonLog[],
   allAttendanceRecords?: AttendanceRecord[]
 ) => {
-  const item = buildAttendanceExport(course, students, allAttendanceRecords);
+  const item = buildAttendanceExport(course, students, lessonLogs, allAttendanceRecords);
   copyToClipboard(addBom(item.content), item.name);
 };
 
@@ -558,25 +666,22 @@ export const buildPeriodLessonsExport = (
     ? students.filter((s) => s.classType === classType)
     : students;
 
-  const periodLogs = lessonLogs.filter((l) => {
-    const d = dayjs(l.createdAt);
-    return d.isAfter(dayjs(startDate).subtract(1, 'day')) && d.isBefore(dayjs(endDate).add(1, 'day'));
-  });
-
   const periodRecharges = rechargeRecords.filter((r) => {
     const d = dayjs(r.createdAt);
-    return d.isAfter(dayjs(startDate).subtract(1, 'day')) && d.isBefore(dayjs(endDate).add(1, 'day'));
+    return d.isAfter(dayjs(startDate).startOf('day')) && d.isBefore(dayjs(endDate).endOf('day'));
   });
 
   const name = classType
-    ? `${CLASS_TYPE_MAP[classType]}${dayjs(startDate).format('M月D日')}-${dayjs(endDate).format('M月D日')}课时汇总`
-    : `${dayjs(startDate).format('M月D日')}-${dayjs(endDate).format('M月D日')}学生课时汇总`;
+    ? `${CLASS_TYPE_MAP[classType]}${dayjs(startDate).format('M月D日')}-${dayjs(endDate).format('M月D日')}课时对账表`
+    : `${dayjs(startDate).format('M月D日')}-${dayjs(endDate).format('M月D日')}学生课时对账表`;
 
   const header = [
     '学生姓名', '班级', '年龄段',
-    '当前总课时', '当前已用', '当前剩余',
+    '期初总课时', '期初已用', '期初剩余',
+    '期间上课', '期间撤销', '期间续课', '期间调整',
+    '期末总课时', '期末已用', '期末剩余',
+    '对账校验',
     '累计总课时', '累计已用',
-    '区间内上课', '区间内续费', '区间内调整',
     '最近续费时间', '最近续费节数'
   ];
 
@@ -589,58 +694,81 @@ export const buildPeriodLessonsExport = (
   });
 
   const rows = filtered.map((s) => {
-    const studentLogs = periodLogs.filter((l) => l.studentId === s.id);
-    const periodAttended = studentLogs
-      .filter((l) => l.type === 'attendance_present')
-      .reduce((sum, l) => sum + l.deltaUsed, 0);
-    const periodCancelled = studentLogs
-      .filter((l) => l.type === 'attendance_cancel')
-      .reduce((sum, l) => sum + Math.abs(l.deltaUsed), 0);
-    const periodUsed = periodAttended - periodCancelled;
-
-    const studentRecharges = periodRecharges.filter((r) => r.studentId === s.id);
-    const periodRenew = studentRecharges.reduce((sum, r) => sum + r.amount, 0);
-
-    const periodAdjust = studentLogs
-      .filter((l) => l.type === 'adjust_total' || l.type === 'adjust_used' || l.type === 'manual')
-      .reduce((sum, l) => sum + l.deltaTotal - l.deltaUsed, 0);
-
+    const stats = getStudentPeriodStats(s, lessonLogs, startDate, endDate);
     const lastRecharge = lastRechargeMap.get(s.id);
+
+    const periodNet = stats.periodRenew + stats.periodAdjust - stats.periodAttended + stats.periodCancelled;
+    const expectedEndRemaining = stats.startRemaining + periodNet;
+    const isBalanced = Math.abs(expectedEndRemaining - stats.endRemaining) < 0.01;
+    const checkStatus = isBalanced ? '✓ 平衡' : `✗ 差额${(stats.endRemaining - expectedEndRemaining).toFixed(1)}`;
 
     return [
       s.name,
       CLASS_TYPE_MAP[s.classType],
       AGE_GROUP_MAP[s.ageGroup],
-      s.totalLessons,
-      s.usedLessons,
-      s.remainingLessons,
+      stats.startTotal,
+      stats.startUsed,
+      stats.startRemaining,
+      stats.periodAttended,
+      stats.periodCancelled,
+      stats.periodRenew,
+      stats.periodAdjust,
+      stats.endTotal,
+      stats.endUsed,
+      stats.endRemaining,
+      checkStatus,
       s.cumulativeTotal,
       s.cumulativeUsed,
-      periodUsed,
-      periodRenew,
-      periodAdjust,
       lastRecharge ? dayjs(lastRecharge.createdAt).format('YYYY-MM-DD') : '-',
       lastRecharge ? lastRecharge.amount : '-'
     ].join(',');
   });
 
-  const totalPeriodUsed = filtered.reduce((sum, s) => {
-    const studentLogs = periodLogs.filter((l) => l.studentId === s.id);
-    const attended = studentLogs.filter((l) => l.type === 'attendance_present').reduce((s2, l) => s2 + l.deltaUsed, 0);
-    const cancelled = studentLogs.filter((l) => l.type === 'attendance_cancel').reduce((s2, l) => s2 + Math.abs(l.deltaUsed), 0);
-    return sum + attended - cancelled;
+  const totalStartRemaining = filtered.reduce((sum, s) => {
+    const stats = getStudentPeriodStats(s, lessonLogs, startDate, endDate);
+    return sum + stats.startRemaining;
   }, 0);
-  const totalPeriodRenew = periodRecharges.reduce((sum, r) => sum + r.amount, 0);
+  const totalPeriodAttended = filtered.reduce((sum, s) => {
+    const stats = getStudentPeriodStats(s, lessonLogs, startDate, endDate);
+    return sum + stats.periodAttended;
+  }, 0);
+  const totalPeriodCancelled = filtered.reduce((sum, s) => {
+    const stats = getStudentPeriodStats(s, lessonLogs, startDate, endDate);
+    return sum + stats.periodCancelled;
+  }, 0);
+  const totalPeriodRenew = filtered.reduce((sum, s) => {
+    const stats = getStudentPeriodStats(s, lessonLogs, startDate, endDate);
+    return sum + stats.periodRenew;
+  }, 0);
+  const totalPeriodAdjust = filtered.reduce((sum, s) => {
+    const stats = getStudentPeriodStats(s, lessonLogs, startDate, endDate);
+    return sum + stats.periodAdjust;
+  }, 0);
+  const totalEndRemaining = filtered.reduce((sum, s) => {
+    const stats = getStudentPeriodStats(s, lessonLogs, startDate, endDate);
+    return sum + stats.endRemaining;
+  }, 0);
 
   const content =
+    `# 【对账说明】\n` +
+    `# 统计区间：${dayjs(startDate).format('YYYY年M月D日')} 至 ${dayjs(endDate).format('YYYY年M月D日')}\n` +
+    `# 对账公式：期初剩余 + 期间续课 + 期间调整 - 期间上课 + 期间撤销 = 期末剩余\n` +
+    `# 期初汇总：${totalStartRemaining}节\n` +
+    `# 期间上课：-${totalPeriodAttended}节\n` +
+    `# 期间撤销：+${totalPeriodCancelled}节\n` +
+    `# 期间续课：+${totalPeriodRenew}节\n` +
+    `# 期间调整：${totalPeriodAdjust >= 0 ? '+' : ''}${totalPeriodAdjust}节\n` +
+    `# 期末汇总：${totalEndRemaining}节\n` +
+    `# 校验结果：${Math.abs(totalStartRemaining + totalPeriodRenew + totalPeriodAdjust - totalPeriodAttended + totalPeriodCancelled - totalEndRemaining) < 0.01 ? '✓ 整体平衡' : '✗ 存在差额'}\n` +
+    `# \n` +
     header.join(',') +
     '\n' +
     rows.join('\n') +
-    `\n# 共${filtered.length}名学生，区间上课${totalPeriodUsed}节，续费${totalPeriodRenew}节`;
+    `\n# 共${filtered.length}名学生`;
 
   return {
     name,
-    description: `${filtered.length}名学生 · 上课${totalPeriodUsed}节 · 续费${totalPeriodRenew}节`,
+    description: `${filtered.length}名学生 · 对账区间 ${dayjs(startDate).format('M/D')}-${dayjs(endDate).format('M/D')}`,
     count: filtered.length,
     content,
     type: 'lessons'

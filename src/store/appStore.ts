@@ -9,7 +9,9 @@ import {
   LessonLogType,
   ClassType,
   AgeGroup,
-  WARNING_LESSON_THRESHOLD
+  WARNING_LESSON_THRESHOLD,
+  CLASS_TYPE_MAP,
+  AGE_GROUP_MAP
 } from '@/types';
 import {
   mockStudents,
@@ -58,6 +60,7 @@ interface AppState {
 
   getLessonLogsByStudent: (studentId: string) => LessonLog[];
   getLessonLogsByDateRange: (startDate: string, endDate: string) => LessonLog[];
+  generateHistoricalLessonLogs: () => number;
 
   resetToMock: () => void;
 }
@@ -622,6 +625,152 @@ export const useAppStore = create<AppState>()(
           .sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
       },
 
+      generateHistoricalLessonLogs: () => {
+        const state = get();
+        if (state.lessonLogs.length > 0) {
+          console.log('[LessonLogs] 已有流水记录，跳过历史重建');
+          return state.lessonLogs.length;
+        }
+
+        const newLogs: LessonLog[] = [];
+        const { students, rechargeRecords, attendanceRecords, courses } = state;
+
+        students.forEach((student) => {
+          const studentRecharges = rechargeRecords
+            .filter((r) => r.studentId === student.id)
+            .sort((a, b) => new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime());
+
+          const studentAttendances = attendanceRecords
+            .filter((a) => a.studentId === student.id && a.status === 'present')
+            .sort((a, b) => new Date(a.checkedAt).getTime() - new Date(b.checkedAt).getTime());
+
+          let currentTotal = 0;
+          let currentUsed = 0;
+          let cumulativeTotal = 0;
+          let cumulativeUsed = 0;
+
+          interface HistoryEvent {
+            type: 'init' | 'recharge' | 'attendance';
+            time: string;
+            data: RechargeRecord | AttendanceRecord | null;
+          }
+
+          const events: HistoryEvent[] = [];
+
+          events.push({
+            type: 'init',
+            time: student.createdAt,
+            data: null
+          });
+
+          studentRecharges.forEach((r) => {
+            events.push({ type: 'recharge', time: r.createdAt, data: r });
+          });
+
+          studentAttendances.forEach((a) => {
+            events.push({ type: 'attendance', time: a.checkedAt, data: a });
+          });
+
+          events.sort((a, b) => new Date(a.time).getTime() - new Date(b.time).getTime());
+
+          events.forEach((event, idx) => {
+            const beforeTotal = currentTotal;
+            const beforeUsed = currentUsed;
+            const beforeRemaining = Math.max(0, beforeTotal - beforeUsed);
+
+            if (event.type === 'init') {
+              if (studentRecharges.length > 0 && studentRecharges[0].beforeTotal === 0) {
+                currentTotal = 0;
+                currentUsed = 0;
+              } else {
+                const initialTotal = student.cumulativeTotal || student.totalLessons;
+                currentTotal = initialTotal;
+                cumulativeTotal = initialTotal;
+              }
+
+              if (idx === 0 && currentTotal > 0) {
+                const log: LessonLog = {
+                  id: generateId('l'),
+                  studentId: student.id,
+                  type: 'manual',
+                  deltaTotal: currentTotal,
+                  deltaUsed: 0,
+                  beforeTotal: 0,
+                  afterTotal: currentTotal,
+                  beforeUsed: 0,
+                  afterUsed: 0,
+                  beforeRemaining: 0,
+                  afterRemaining: currentTotal,
+                  reason: '初始报名',
+                  operator: '历史数据',
+                  remark: '历史数据补全',
+                  createdAt: event.time
+                };
+                newLogs.push(log);
+              }
+            } else if (event.type === 'recharge' && event.data) {
+              const r = event.data as RechargeRecord;
+              currentTotal = r.afterTotal;
+              cumulativeTotal = Math.max(cumulativeTotal, currentTotal);
+
+              const log: LessonLog = {
+                id: generateId('l'),
+                studentId: student.id,
+                type: 'renew',
+                deltaTotal: r.amount,
+                deltaUsed: 0,
+                beforeTotal: r.beforeTotal,
+                afterTotal: r.afterTotal,
+                beforeUsed: beforeUsed,
+                afterUsed: beforeUsed,
+                beforeRemaining: r.beforeRemaining,
+                afterRemaining: r.afterRemaining,
+                reason: r.remark || '续费加课',
+                operator: r.operator,
+                remark: r.remark,
+                createdAt: event.time
+              };
+              newLogs.push(log);
+            } else if (event.type === 'attendance' && event.data) {
+              const a = event.data as AttendanceRecord;
+              const course = courses.find((c) => c.id === a.courseId);
+              currentUsed += 1;
+              cumulativeUsed = Math.max(cumulativeUsed, currentUsed);
+
+              const afterTotal = currentTotal;
+              const afterUsed = currentUsed;
+              const afterRemaining = Math.max(0, afterTotal - afterUsed);
+
+              const log: LessonLog = {
+                id: generateId('l'),
+                studentId: student.id,
+                type: 'attendance_present',
+                deltaTotal: 0,
+                deltaUsed: 1,
+                beforeTotal,
+                afterTotal,
+                beforeUsed,
+                afterUsed,
+                beforeRemaining,
+                afterRemaining,
+                reason: course ? `${dayjs(course.date).format('M月D日')} ${course.startTime} 上课` : '上课扣课',
+                operator: '历史数据',
+                courseId: a.courseId,
+                remark: course ? `${CLASS_TYPE_MAP[course.classType]}${AGE_GROUP_MAP[course.ageGroup]}` : undefined,
+                createdAt: event.time
+              };
+              newLogs.push(log);
+            }
+          });
+        });
+
+        newLogs.sort((a, b) => new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime());
+
+        set({ lessonLogs: newLogs });
+        console.log('[LessonLogs] 历史流水重建完成，共', newLogs.length, '条记录');
+        return newLogs.length;
+      },
+
       resetToMock: () => {
         set({
           students: mockStudents,
@@ -634,7 +783,14 @@ export const useAppStore = create<AppState>()(
       }
     }),
     {
-      name: 'training-class-store'
+      name: 'training-class-store',
+      onRehydrateStorage: () => (state) => {
+        if (state) {
+          setTimeout(() => {
+            state.generateHistoricalLessonLogs();
+          }, 100);
+        }
+      }
     }
   )
 );

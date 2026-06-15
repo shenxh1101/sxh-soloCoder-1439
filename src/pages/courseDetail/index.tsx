@@ -24,6 +24,7 @@ const CourseDetailPage: React.FC = () => {
   const course = useAppStore((s) => s.getCourseById(id));
   const students = useAppStore((s) => s.students);
   const attendanceRecords = useAppStore((s) => s.attendanceRecords);
+  const lessonLogs = useAppStore((s) => s.lessonLogs);
   const getAttendanceByCourse = useAppStore((s) => s.getAttendanceByCourse);
   const deleteCourse = useAppStore((s) => s.deleteCourse);
   const resetAttendance = useAppStore((s) => s.resetAttendance);
@@ -50,7 +51,7 @@ const CourseDetailPage: React.FC = () => {
   const weekday = ['周日', '周一', '周二', '周三', '周四', '周五', '周六'][dayjs(course.date).day()];
 
   const handleExport = () => {
-    exportAttendanceSheet(course, students, records);
+    exportAttendanceSheet(course, students, lessonLogs, records);
   };
 
   const handleGoAttendance = () => {

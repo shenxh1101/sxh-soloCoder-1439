@@ -49,6 +49,36 @@ export interface RechargeRecord {
   createdAt: string;
 }
 
+export type LessonLogType = 'renew' | 'attendance_present' | 'attendance_cancel' | 'adjust_used' | 'adjust_total' | 'manual';
+
+export interface LessonLog {
+  id: string;
+  studentId: string;
+  type: LessonLogType;
+  deltaTotal: number;
+  deltaUsed: number;
+  beforeTotal: number;
+  afterTotal: number;
+  beforeUsed: number;
+  afterUsed: number;
+  beforeRemaining: number;
+  afterRemaining: number;
+  reason: string;
+  operator?: string;
+  courseId?: string;
+  remark?: string;
+  createdAt: string;
+}
+
+export const LESSON_LOG_TYPE_MAP: Record<LessonLogType, string> = {
+  renew: '续费加课',
+  attendance_present: '上课扣课',
+  attendance_cancel: '取消出勤',
+  adjust_used: '调整已用',
+  adjust_total: '调整总课时',
+  manual: '手动调整'
+};
+
 export const CLASS_TYPE_MAP: Record<ClassType, string> = {
   piano: '钢琴班',
   art: '美术班',

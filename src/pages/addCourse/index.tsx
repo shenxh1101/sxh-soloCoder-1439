@@ -1,6 +1,6 @@
 import React, { useState, useMemo, useEffect } from 'react';
 import { View, Text, Input, Button, ScrollView } from '@tarojs/components';
-import Taro from '@tarojs/taro';
+import Taro, { useRouter } from '@tarojs/taro';
 import { useAppStore } from '@/store/appStore';
 import {
   ClassType,
@@ -28,11 +28,18 @@ const timeSlots = [
 const weekdayLabels = ['一', '二', '三', '四', '五', '六', '日'];
 
 const AddCoursePage: React.FC = () => {
+  const router = useRouter();
+  const editId = router.params.id as string | undefined;
+
   const students = useAppStore((s) => s.students);
   const courses = useAppStore((s) => s.courses);
   const addCourse = useAppStore((s) => s.addCourse);
+  const updateCourse = useAppStore((s) => s.updateCourse);
+  const getCourseById = useAppStore((s) => s.getCourseById);
   const checkTimeConflict = useAppStore((s) => s.checkTimeConflict);
   const getConflictCourses = useAppStore((s) => s.getConflictCourses);
+
+  const existing = useMemo(() => (editId ? getCourseById(editId) : undefined), [editId, courses]);
 
   const [classType, setClassType] = useState<ClassType>('piano');
   const [ageGroup, setAgeGroup] = useState<AgeGroup>('6-8');
@@ -45,14 +52,29 @@ const AddCoursePage: React.FC = () => {
 
   const [calendarMonth, setCalendarMonth] = useState(dayjs().format('YYYY-MM'));
 
+  useEffect(() => {
+    if (existing) {
+      setClassType(existing.classType);
+      setAgeGroup(existing.ageGroup);
+      setClassroom(existing.classroom);
+      setTeacher(existing.teacher);
+      setDate(existing.date);
+      setStartTime(existing.startTime);
+      setEndTime(existing.endTime);
+      setSelectedStudents(existing.studentIds);
+      setCalendarMonth(dayjs(existing.date).format('YYYY-MM'));
+      Taro.setNavigationBarTitle({ title: '编辑课程' });
+    }
+  }, [existing]);
+
   const isConflict = useMemo(() => {
-    return checkTimeConflict(classroom, date, startTime, endTime);
-  }, [courses, classroom, date, startTime, endTime]);
+    return checkTimeConflict(classroom, date, startTime, endTime, editId);
+  }, [courses, classroom, date, startTime, endTime, editId]);
 
   const conflictCourses = useMemo(() => {
     if (!isConflict) return [];
-    return getConflictCourses(classroom, date, startTime, endTime);
-  }, [isConflict, courses, classroom, date, startTime, endTime]);
+    return getConflictCourses(classroom, date, startTime, endTime, editId);
+  }, [isConflict, courses, classroom, date, startTime, endTime, editId]);
 
   const availableStudents = useMemo(() => {
     return students.filter(
@@ -208,21 +230,35 @@ const AddCoursePage: React.FC = () => {
   };
 
   const doSubmit = () => {
-    const result = addCourse({
-      classType,
-      ageGroup,
-      classroom,
-      teacher: teacher.trim(),
-      date,
-      startTime,
-      endTime,
-      studentIds: selectedStudents
-    });
+    let result;
+    if (editId) {
+      result = updateCourse(editId, {
+        classType,
+        ageGroup,
+        classroom,
+        teacher: teacher.trim(),
+        date,
+        startTime,
+        endTime,
+        studentIds: selectedStudents
+      });
+    } else {
+      result = addCourse({
+        classType,
+        ageGroup,
+        classroom,
+        teacher: teacher.trim(),
+        date,
+        startTime,
+        endTime,
+        studentIds: selectedStudents
+      });
+    }
     if (result.success) {
-      Taro.showToast({ title: '排课成功', icon: 'success' });
+      Taro.showToast({ title: editId ? '修改成功' : '排课成功', icon: 'success' });
       setTimeout(() => Taro.navigateBack(), 800);
     } else {
-      Taro.showToast({ title: result.message || '排课失败', icon: 'none' });
+      Taro.showToast({ title: result.message || (editId ? '修改失败' : '排课失败'), icon: 'none' });
     }
   };
 

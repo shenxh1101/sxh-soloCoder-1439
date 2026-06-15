@@ -26,6 +26,7 @@ const CourseDetailPage: React.FC = () => {
   const attendanceRecords = useAppStore((s) => s.attendanceRecords);
   const getAttendanceByCourse = useAppStore((s) => s.getAttendanceByCourse);
   const deleteCourse = useAppStore((s) => s.deleteCourse);
+  const resetAttendance = useAppStore((s) => s.resetAttendance);
 
   const records = useMemo(() => course ? getAttendanceByCourse(course.id) : [], [course, attendanceRecords]);
 
@@ -54,6 +55,24 @@ const CourseDetailPage: React.FC = () => {
 
   const handleGoAttendance = () => {
     Taro.switchTab({ url: '/pages/attendance/index' });
+  };
+
+  const handleEdit = () => {
+    Taro.navigateTo({ url: `/pages/addCourse/index?id=${course.id}` });
+  };
+
+  const handleReset = () => {
+    Taro.showModal({
+      title: '重置点名',
+      content: '确定要重置本节课的点名记录吗？所有已点名状态会回到未点名状态，已扣的课时会全部加回来。',
+      confirmColor: '#EF4444',
+      success: (res) => {
+        if (res.confirm) {
+          resetAttendance(course.id);
+          Taro.showToast({ title: '已重置', icon: 'success' });
+        }
+      }
+    });
   };
 
   const handleDelete = () => {
@@ -183,8 +202,14 @@ const CourseDetailPage: React.FC = () => {
       </View>
 
       <View className={styles.bottomBar}>
-        <Button className={classnames(styles.btn, 'secondary')} onClick={handleDelete}>
-          删除课程
+        <Button className={classnames(styles.btn, 'ghost')} onClick={handleReset}>
+          重置点名
+        </Button>
+        <Button className={classnames(styles.btn, 'secondary')} onClick={handleEdit}>
+          编辑课程
+        </Button>
+        <Button className={classnames(styles.btn, 'danger')} onClick={handleDelete}>
+          删除
         </Button>
         <Button className={classnames(styles.btn, 'primary')} onClick={handleGoAttendance}>
           去点名

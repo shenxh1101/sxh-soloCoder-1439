@@ -253,6 +253,12 @@
   color: $color-text-tertiary;
 }
 
+.historySub {
+  font-size: $font-size-xs;
+  color: $color-text-secondary;
+  margin-top: 4rpx;
+}
+
 .historyValue {
   font-size: $font-size-sm;
   font-weight: $font-weight-semibold;

@@ -5,6 +5,8 @@ import {
   Course,
   AttendanceRecord,
   RechargeRecord,
+  LessonLog,
+  LessonLogType,
   ClassType,
   AgeGroup,
   WARNING_LESSON_THRESHOLD
@@ -22,6 +24,7 @@ interface AppState {
   courses: Course[];
   attendanceRecords: AttendanceRecord[];
   rechargeRecords: RechargeRecord[];
+  lessonLogs: LessonLog[];
 
   addStudent: (data: Omit<Student, 'id' | 'createdAt' | 'usedLessons' | 'remainingLessons'> & { totalLessons: number }) => void;
   updateStudent: (id: string, data: Partial<Student>) => void;
@@ -31,11 +34,11 @@ interface AppState {
   getStudentsByClass: (classType?: ClassType) => Student[];
 
   renewLessons: (studentId: string, amount: number, operator?: string, remark?: string) => { success: boolean; message?: string };
-  adjustUsedLessons: (studentId: string, delta: number, remark?: string) => { success: boolean; message?: string };
-  updateTotalLessons: (studentId: string, newTotal: number) => { success: boolean; message?: string };
+  adjustUsedLessons: (studentId: string, delta: number, reason?: string, operator?: string, remark?: string, courseId?: string) => { success: boolean; message?: string };
+  updateTotalLessons: (studentId: string, newTotal: number, operator?: string, remark?: string) => { success: boolean; message?: string };
 
   addCourse: (data: Omit<Course, 'id' | 'attendance' | 'createdAt'>) => { success: boolean; message?: string };
-  updateCourse: (id: string, data: Partial<Course>) => void;
+  updateCourse: (id: string, data: Partial<Course>) => { success: boolean; message?: string };
   deleteCourse: (id: string) => void;
   getCourseById: (id: string) => Course | undefined;
   getCoursesByDate: (date: string) => Course[];
@@ -45,12 +48,16 @@ interface AppState {
   getConflictCourses: (classroom: 'A' | 'B' | 'C', date: string, startTime: string, endTime: string, excludeId?: string) => Course[];
 
   takeAttendance: (courseId: string, studentId: string, status: 'present' | 'absent' | 'leave') => void;
+  resetAttendance: (courseId: string) => void;
   getAttendanceByCourse: (courseId: string) => AttendanceRecord[];
   isStudentAttended: (courseId: string, studentId: string) => boolean;
 
   getRechargeRecordsByStudent: (studentId: string) => RechargeRecord[];
   getLastRechargeByStudent: (studentId: string) => RechargeRecord | undefined;
   addRechargeRecord: (record: Omit<RechargeRecord, 'id' | 'createdAt'>) => void;
+
+  getLessonLogsByStudent: (studentId: string) => LessonLog[];
+  getLessonLogsByDateRange: (startDate: string, endDate: string) => LessonLog[];
 
   resetToMock: () => void;
 }
@@ -95,6 +102,7 @@ export const useAppStore = create<AppState>()(
       courses: mockCourses,
       attendanceRecords: mockAttendanceRecords,
       rechargeRecords: mockRechargeRecords,
+      lessonLogs: [],
 
       addStudent: (data) => {
         const total = Math.max(0, data.totalLessons);
@@ -131,7 +139,8 @@ export const useAppStore = create<AppState>()(
             studentIds: c.studentIds.filter((sid) => sid !== id)
           })),
           rechargeRecords: state.rechargeRecords.filter((r) => r.studentId !== id),
-          attendanceRecords: state.attendanceRecords.filter((a) => a.studentId !== id)
+          attendanceRecords: state.attendanceRecords.filter((a) => a.studentId !== id),
+          lessonLogs: state.lessonLogs.filter((l) => l.studentId !== id)
         }));
         console.log('[Student] Delete student:', id);
       },
@@ -159,8 +168,10 @@ export const useAppStore = create<AppState>()(
         }
 
         const beforeTotal = student.totalLessons;
+        const beforeUsed = student.usedLessons;
         const beforeRemaining = student.remainingLessons;
         const afterTotal = beforeTotal + amount;
+        const afterUsed = beforeUsed;
         const afterRemaining = beforeRemaining + amount;
 
         const record: RechargeRecord = {
@@ -176,6 +187,24 @@ export const useAppStore = create<AppState>()(
           createdAt: dayjs().toISOString()
         };
 
+        const log: LessonLog = {
+          id: generateId('l'),
+          studentId,
+          type: 'renew',
+          deltaTotal: amount,
+          deltaUsed: 0,
+          beforeTotal,
+          afterTotal,
+          beforeUsed,
+          afterUsed,
+          beforeRemaining,
+          afterRemaining,
+          reason: remark || '续费加课',
+          operator,
+          remark,
+          createdAt: dayjs().toISOString()
+        };
+
         set((state) => ({
           students: state.students.map((s) =>
             s.id === studentId
@@ -186,7 +215,8 @@ export const useAppStore = create<AppState>()(
                 })
               : s
           ),
-          rechargeRecords: [...state.rechargeRecords, record]
+          rechargeRecords: [...state.rechargeRecords, record],
+          lessonLogs: [...state.lessonLogs, log]
         }));
 
         console.log(
@@ -201,7 +231,7 @@ export const useAppStore = create<AppState>()(
         return { success: true };
       },
 
-      adjustUsedLessons: (studentId, delta, remark) => {
+      adjustUsedLessons: (studentId, delta, reason, operator, remark, courseId) => {
         const student = get().getStudentById(studentId);
         if (!student) {
           return { success: false, message: '学生不存在' };
@@ -215,16 +245,47 @@ export const useAppStore = create<AppState>()(
           return { success: false, message: '已上课时不能超过总课时' };
         }
 
+        const beforeTotal = student.totalLessons;
+        const beforeUsed = student.usedLessons;
+        const beforeRemaining = student.remainingLessons;
+        const afterTotal = beforeTotal;
+        const afterUsed = newUsed;
+        const afterRemaining = beforeTotal - newUsed;
+
+        const logType: LessonLogType = delta > 0
+          ? (courseId ? 'attendance_present' : 'adjust_used')
+          : (courseId ? 'attendance_cancel' : 'adjust_used');
+
+        const log: LessonLog = {
+          id: generateId('l'),
+          studentId,
+          type: logType,
+          deltaTotal: 0,
+          deltaUsed: delta,
+          beforeTotal,
+          afterTotal,
+          beforeUsed,
+          afterUsed,
+          beforeRemaining,
+          afterRemaining,
+          reason: reason || (delta > 0 ? '增加已用课时' : '减少已用课时'),
+          operator,
+          courseId,
+          remark,
+          createdAt: dayjs().toISOString()
+        };
+
         set((state) => ({
           students: state.students.map((s) =>
             s.id === studentId
               ? clampLessons({
                   ...s,
                   usedLessons: newUsed,
-                  remainingLessons: s.totalLessons - newUsed
+                  remainingLessons: afterRemaining
                 })
               : s
-          )
+          ),
+          lessonLogs: [...state.lessonLogs, log]
         }));
 
         console.log(
@@ -233,14 +294,14 @@ export const useAppStore = create<AppState>()(
           delta > 0 ? '增加' : '减少',
           Math.abs(delta),
           '节已用课时，当前剩余',
-          student.totalLessons - newUsed,
+          afterRemaining,
           '节',
           remark ? `(${remark})` : ''
         );
         return { success: true };
       },
 
-      updateTotalLessons: (studentId, newTotal) => {
+      updateTotalLessons: (studentId, newTotal, operator, remark) => {
         if (newTotal < 0) {
           return { success: false, message: '总课时不能为负数' };
         }
@@ -250,6 +311,31 @@ export const useAppStore = create<AppState>()(
         }
 
         const clampedUsed = Math.min(student.usedLessons, newTotal);
+        const beforeTotal = student.totalLessons;
+        const beforeUsed = student.usedLessons;
+        const beforeRemaining = student.remainingLessons;
+        const afterTotal = newTotal;
+        const afterUsed = clampedUsed;
+        const afterRemaining = newTotal - clampedUsed;
+
+        const log: LessonLog = {
+          id: generateId('l'),
+          studentId,
+          type: 'adjust_total',
+          deltaTotal: newTotal - beforeTotal,
+          deltaUsed: clampedUsed - beforeUsed,
+          beforeTotal,
+          afterTotal,
+          beforeUsed,
+          afterUsed,
+          beforeRemaining,
+          afterRemaining,
+          reason: remark || '调整总课时',
+          operator,
+          remark,
+          createdAt: dayjs().toISOString()
+        };
+
         set((state) => ({
           students: state.students.map((s) =>
             s.id === studentId
@@ -257,23 +343,24 @@ export const useAppStore = create<AppState>()(
                   ...s,
                   totalLessons: newTotal,
                   usedLessons: clampedUsed,
-                  remainingLessons: newTotal - clampedUsed
+                  remainingLessons: afterRemaining
                 })
               : s
-          )
+          ),
+          lessonLogs: [...state.lessonLogs, log]
         }));
 
         console.log(
           '[Lessons]',
           student.name,
           '总课时从',
-          student.totalLessons,
+          beforeTotal,
           '改为',
           newTotal,
           '，已用',
           clampedUsed,
           '，剩余',
-          newTotal - clampedUsed
+          afterRemaining
         );
         return { success: true };
       },
@@ -300,10 +387,37 @@ export const useAppStore = create<AppState>()(
       },
 
       updateCourse: (id, data) => {
+        const course = get().getCourseById(id);
+        if (!course) {
+          return { success: false, message: '课程不存在' };
+        }
+
+        const classroom = data.classroom || course.classroom;
+        const date = data.date || course.date;
+        const startTime = data.startTime || course.startTime;
+        const endTime = data.endTime || course.endTime;
+
+        if (
+          data.classroom !== undefined ||
+          data.date !== undefined ||
+          data.startTime !== undefined ||
+          data.endTime !== undefined
+        ) {
+          const conflicts = get().getConflictCourses(classroom, date, startTime, endTime, id);
+          if (conflicts.length > 0) {
+            const first = conflicts[0];
+            return {
+              success: false,
+              message: `该教室此时段已被占用：${first.startTime}-${first.endTime} ${first.teacher}老师`
+            };
+          }
+        }
+
         set((state) => ({
           courses: state.courses.map((c) => (c.id === id ? { ...c, ...data } : c))
         }));
         console.log('[Course] Update course:', id);
+        return { success: true };
       },
 
       deleteCourse: (id) => {
@@ -386,7 +500,7 @@ export const useAppStore = create<AppState>()(
               )
             }));
           } else if (willBePresent) {
-            const result = state.adjustUsedLessons(studentId, 1, '点名出勤');
+            const result = state.adjustUsedLessons(studentId, 1, '点名出勤', undefined, undefined, courseId);
             if (result.success) {
               set((s) => ({
                 attendanceRecords: s.attendanceRecords.map((a) =>
@@ -397,7 +511,7 @@ export const useAppStore = create<AppState>()(
               }));
             }
           } else {
-            const result = state.adjustUsedLessons(studentId, -1, '取消出勤');
+            const result = state.adjustUsedLessons(studentId, -1, '取消出勤', undefined, undefined, courseId);
             if (result.success) {
               set((s) => ({
                 attendanceRecords: s.attendanceRecords.map((a) =>
@@ -417,7 +531,7 @@ export const useAppStore = create<AppState>()(
             checkedAt: dayjs().toISOString()
           };
           if (willBePresent) {
-            const result = state.adjustUsedLessons(studentId, 1, '点名出勤');
+            const result = state.adjustUsedLessons(studentId, 1, '点名出勤', undefined, undefined, courseId);
             if (result.success) {
               set((s) => ({
                 attendanceRecords: [...s.attendanceRecords, newRecord]
@@ -430,6 +544,20 @@ export const useAppStore = create<AppState>()(
           }
         }
         console.log('[Attendance]', courseId, studentId, status);
+      },
+
+      resetAttendance: (courseId) => {
+        const state = get();
+        const records = state.getAttendanceByCourse(courseId);
+        records.forEach((rec) => {
+          if (rec.status === 'present') {
+            state.adjustUsedLessons(rec.studentId, -1, '重置点名', undefined, undefined, courseId);
+          }
+        });
+        set((s) => ({
+          attendanceRecords: s.attendanceRecords.filter((a) => a.courseId !== courseId)
+        }));
+        console.log('[Attendance] Reset course:', courseId);
       },
 
       getAttendanceByCourse: (courseId) =>
@@ -463,12 +591,29 @@ export const useAppStore = create<AppState>()(
         }));
       },
 
+      getLessonLogsByStudent: (studentId) =>
+        get()
+          .lessonLogs.filter((l) => l.studentId === studentId)
+          .sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()),
+
+      getLessonLogsByDateRange: (startDate, endDate) => {
+        const start = dayjs(startDate).startOf('day');
+        const end = dayjs(endDate).endOf('day');
+        return get()
+          .lessonLogs.filter((l) => {
+            const d = dayjs(l.createdAt);
+            return d.isAfter(start.subtract(1, 'second')) && d.isBefore(end.add(1, 'second'));
+          })
+          .sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
+      },
+
       resetToMock: () => {
         set({
           students: mockStudents,
           courses: mockCourses,
           attendanceRecords: mockAttendanceRecords,
-          rechargeRecords: mockRechargeRecords
+          rechargeRecords: mockRechargeRecords,
+          lessonLogs: []
         });
         console.log('[Store] Reset to mock data');
       }

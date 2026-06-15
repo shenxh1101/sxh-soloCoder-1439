@@ -198,6 +198,30 @@
   gap: $spacing-xs;
 }
 
+.rangePicker {
+  display: flex;
+  align-items: center;
+  gap: $spacing-sm;
+  margin-bottom: $spacing-md;
+}
+
+.rangeInput {
+  flex: 1;
+  padding: $spacing-sm $spacing-md;
+  background: $color-bg-card;
+  border-radius: $radius-md;
+  font-size: $font-size-sm;
+  color: $color-text-primary;
+  border: 2rpx solid $color-border;
+  box-shadow: $shadow-sm;
+  text-align: center;
+}
+
+.rangeSep {
+  font-size: $font-size-sm;
+  color: $color-text-tertiary;
+}
+
 .dateNavBtn {
   width: 56rpx;
   height: 56rpx;
@@ -280,6 +304,14 @@
 
   &.attendance {
     border-left-color: $color-primary;
+  }
+
+  &.course_summary {
+    border-left-color: $color-info;
+  }
+
+  &.lesson_log {
+    border-left-color: $color-secondary;
   }
 
   &.recharge {

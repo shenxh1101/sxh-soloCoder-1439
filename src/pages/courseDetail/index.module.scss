@@ -257,4 +257,16 @@
     background: $color-bg-hover;
     color: $color-text-secondary;
   }
+
+  &.ghost {
+    background: transparent;
+    color: $color-text-secondary;
+    border: 2rpx solid $color-border;
+  }
+
+  &.danger {
+    background: transparent;
+    color: $color-danger;
+    border: 2rpx solid $color-danger-bg;
+  }
 }

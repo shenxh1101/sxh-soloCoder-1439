@@ -18,6 +18,7 @@ const AttendancePage: React.FC = () => {
   const getCoursesByDate = useAppStore((s) => s.getCoursesByDate);
   const takeAttendance = useAppStore((s) => s.takeAttendance);
   const getAttendanceByCourse = useAppStore((s) => s.getAttendanceByCourse);
+  const resetAttendanceStore = useAppStore((s) => s.resetAttendance);
 
   const [activeDateIdx, setActiveDateIdx] = useState(1);
 
@@ -63,22 +64,12 @@ const AttendancePage: React.FC = () => {
   const resetAttendance = (courseId: string) => {
     Taro.showModal({
       title: '确认重置',
-      content: '确定要重置本节课所有点名状态吗？',
+      content: '确定要重置本节课所有点名状态吗？所有已扣课时会加回来。',
+      confirmColor: '#EF4444',
       success: (res) => {
         if (res.confirm) {
-          const course = courses.find((c) => c.id === courseId);
-          if (!course) return;
-          course.studentIds.forEach((sid) => {
-            const status = getStudentStatus(courseId, sid);
-            if (status) {
-              takeAttendance(courseId, sid, 'absent');
-              const rec = attendanceRecords.find((a) => a.courseId === courseId && a.studentId === sid);
-              if (rec && rec.status === 'present') {
-                takeAttendance(courseId, sid, 'absent');
-              }
-            }
-          });
-          Taro.showToast({ title: '已重置', icon: 'none' });
+          resetAttendanceStore(courseId);
+          Taro.showToast({ title: '已重置', icon: 'success' });
         }
       }
     });

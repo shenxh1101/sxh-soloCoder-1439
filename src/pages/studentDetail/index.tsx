@@ -2,7 +2,7 @@ import React, { useState, useMemo } from 'react';
 import { View, Text, Input, Button, ScrollView } from '@tarojs/components';
 import Taro, { useRouter } from '@tarojs/taro';
 import { useAppStore } from '@/store/appStore';
-import { CLASS_TYPE_MAP, AGE_GROUP_MAP, WARNING_LESSON_THRESHOLD } from '@/types';
+import { CLASS_TYPE_MAP, AGE_GROUP_MAP, WARNING_LESSON_THRESHOLD, LESSON_LOG_TYPE_MAP } from '@/types';
 import EmptyState from '@/components/EmptyState';
 import classnames from 'classnames';
 import dayjs from 'dayjs';
@@ -20,9 +20,10 @@ const StudentDetailPage: React.FC = () => {
   const deleteStudent = useAppStore((s) => s.deleteStudent);
   const renewLessons = useAppStore((s) => s.renewLessons);
   const getRechargeRecordsByStudent = useAppStore((s) => s.getRechargeRecordsByStudent);
+  const getLessonLogsByStudent = useAppStore((s) => s.getLessonLogsByStudent);
 
   const [renewAmount, setRenewAmount] = useState('');
-  const [activeRecordTab, setActiveRecordTab] = useState<'attendance' | 'recharge'>('attendance');
+  const [activeRecordTab, setActiveRecordTab] = useState<'attendance' | 'recharge' | 'logs'>('attendance');
 
   const history = useMemo(() => {
     if (!student) return [];
@@ -51,6 +52,11 @@ const StudentDetailPage: React.FC = () => {
     const records = getRechargeRecordsByStudent(student.id);
     return records.length > 0 ? records[0] : undefined;
   }, [student, getRechargeRecordsByStudent]);
+
+  const lessonLogs = useMemo(() => {
+    if (!student) return [];
+    return getLessonLogsByStudent(student.id).slice(0, 20);
+  }, [student, getLessonLogsByStudent]);
 
   if (!student) {
     return (
@@ -239,6 +245,15 @@ const StudentDetailPage: React.FC = () => {
             >
               💳 续费记录
             </Text>
+            <Text
+              className={classnames(
+                styles.recordTab,
+                activeRecordTab === 'logs' && styles.active
+              )}
+              onClick={() => setActiveRecordTab('logs')}
+            >
+              📒 课时流水
+            </Text>
           </View>
 
           {activeRecordTab === 'attendance' && (
@@ -300,6 +315,59 @@ const StudentDetailPage: React.FC = () => {
               ) : (
                 <View className={styles.emptyRecord}>
                   <Text>暂无续费记录</Text>
+                </View>
+              )}
+            </View>
+          )}
+
+          {activeRecordTab === 'logs' && (
+            <View>
+              {lessonLogs.length > 0 ? (
+                lessonLogs.map((log) => (
+                  <View key={log.id} className={styles.historyItem}>
+                    <View className={styles.historyLeft}>
+                      <View
+                        className={styles.historyIcon}
+                        style={{
+                          background: log.deltaUsed > 0 ? '#FCE7F3' : log.deltaTotal > 0 ? '#D1FAE5' : '#E0E7FF'
+                        }}
+                      >
+                        {log.type === 'renew'
+                          ? '💳'
+                          : log.type.startsWith('attendance')
+                          ? '📚'
+                          : '⚙️'}
+                      </View>
+                      <View className={styles.historyInfo}>
+                        <Text className={styles.historyTitle}>
+                          {LESSON_LOG_TYPE_MAP[log.type]}
+                          {log.reason && ` · ${log.reason}`}
+                        </Text>
+                        <Text className={styles.historyDate}>
+                          {dayjs(log.createdAt).format('YYYY-MM-DD HH:mm')}
+                          {log.operator && ` · ${log.operator}`}
+                        </Text>
+                        <Text className={styles.historySub}>
+                          {log.beforeRemaining} → {log.afterRemaining} 节
+                        </Text>
+                      </View>
+                    </View>
+                    <Text
+                      className={classnames(
+                        styles.historyValue,
+                        (log.deltaUsed > 0 || log.deltaTotal < 0) ? 'minus' : 'plus'
+                      )}
+                    >
+                      {log.deltaUsed !== 0
+                        ? (log.deltaUsed > 0 ? `-${log.deltaUsed}` : `+${Math.abs(log.deltaUsed)}`)
+                        : (log.deltaTotal > 0 ? `+${log.deltaTotal}` : `${log.deltaTotal}`)}
+                      节
+                    </Text>
+                  </View>
+                ))
+              ) : (
+                <View className={styles.emptyRecord}>
+                  <Text>暂无课时流水</Text>
                 </View>
               )}
             </View>

@@ -2,11 +2,14 @@ import Taro from '@tarojs/taro';
 import {
   Student,
   Course,
+  AttendanceRecord,
   ClassType,
   CLASS_TYPE_MAP,
   AGE_GROUP_MAP,
   CLASSROOM_MAP,
-  RechargeRecord
+  RechargeRecord,
+  LessonLog,
+  LESSON_LOG_TYPE_MAP
 } from '@/types';
 import dayjs from 'dayjs';
 
@@ -15,7 +18,7 @@ export interface ExportItem {
   description: string;
   count: number;
   content: string;
-  type: 'lessons' | 'attendance' | 'recharge';
+  type: 'lessons' | 'attendance' | 'recharge' | 'course_summary' | 'lesson_log';
 }
 
 const addBom = (content: string) => '\uFEFF' + content;
@@ -402,4 +405,139 @@ export const exportAttendanceSheet = (
 ) => {
   const item = buildAttendanceExport(course, students, allAttendanceRecords);
   copyToClipboard(addBom(item.content), item.name);
+};
+
+export const buildCourseSummaryExport = (
+  startDate: string,
+  endDate: string,
+  courses: Course[],
+  allAttendanceRecords?: AttendanceRecord[]
+): ExportItem => {
+  const rangeCourses = courses.filter((c) => {
+    const d = dayjs(c.date);
+    return d.isAfter(dayjs(startDate).subtract(1, 'day')) && d.isBefore(dayjs(endDate).add(1, 'day'));
+  }).sort((a, b) => {
+    const da = dayjs(a.date + ' ' + a.startTime);
+    const db = dayjs(b.date + ' ' + b.startTime);
+    return da.valueOf() - db.valueOf();
+  });
+
+  const name = `${dayjs(startDate).format('M月D日')}-${dayjs(endDate).format('M月D日')}课程汇总表`;
+  const header = ['日期', '星期', '时间', '课程', '年龄段', '教室', '老师', '应到', '实到', '缺勤', '请假', '未点名'];
+
+  const rows = rangeCourses.map((c) => {
+    const records = allAttendanceRecords
+      ? allAttendanceRecords.filter((a) => a.courseId === c.id)
+      : c.attendance;
+    const map = new Map(records.map((a) => [a.studentId, a]));
+    const total = c.studentIds.length;
+    const present = c.studentIds.filter((sid) => map.get(sid)?.status === 'present').length;
+    const absent = c.studentIds.filter((sid) => map.get(sid)?.status === 'absent').length;
+    const leave = c.studentIds.filter((sid) => map.get(sid)?.status === 'leave').length;
+    const unchecked = total - present - absent - leave;
+    const weekday = ['日', '一', '二', '三', '四', '五', '六'][dayjs(c.date).day()];
+    return [
+      c.date,
+      '周' + weekday,
+      `${c.startTime}-${c.endTime}`,
+      CLASS_TYPE_MAP[c.classType],
+      AGE_GROUP_MAP[c.ageGroup],
+      CLASSROOM_MAP[c.classroom],
+      c.teacher,
+      total,
+      present,
+      absent,
+      leave,
+      unchecked
+    ].join(',');
+  });
+
+  const totalLessons = rangeCourses.length;
+  const totalStudents = rangeCourses.reduce((s, c) => s + c.studentIds.length, 0);
+  const content =
+    header.join(',') +
+    '\n' +
+    rows.join('\n') +
+    `\n# 共${totalLessons}节课，${totalStudents}人次`;
+
+  return {
+    name,
+    description: `${dayjs(startDate).format('M/D')}-${dayjs(endDate).format('M/D')} 共${totalLessons}节课`,
+    count: totalLessons,
+    content,
+    type: 'course_summary'
+  };
+};
+
+export const buildLessonLogExport = (
+  logs: LessonLog[],
+  students: Student[],
+  title = '课时流水记录'
+): ExportItem => {
+  const name = title;
+  const header = ['时间', '学生姓名', '班级', '变动类型', '总课时变动', '已用变动', '变动前总课时', '变动后总课时', '变动前已用', '变动后已用', '变动前剩余', '变动后剩余', '原因', '操作人', '备注'];
+
+  const studentMap = new Map(students.map((s) => [s.id, s]));
+
+  const rows = logs.map((log) => {
+    const s = studentMap.get(log.studentId);
+    return [
+      dayjs(log.createdAt).format('YYYY-MM-DD HH:mm'),
+      s?.name || '-',
+      s ? CLASS_TYPE_MAP[s.classType] : '-',
+      LESSON_LOG_TYPE_MAP[log.type],
+      log.deltaTotal > 0 ? `+${log.deltaTotal}` : log.deltaTotal,
+      log.deltaUsed > 0 ? `+${log.deltaUsed}` : log.deltaUsed,
+      log.beforeTotal,
+      log.afterTotal,
+      log.beforeUsed,
+      log.afterUsed,
+      log.beforeRemaining,
+      log.afterRemaining,
+      log.reason,
+      log.operator || '-',
+      log.remark || ''
+    ].join(',');
+  });
+
+  const totalDelta = logs.reduce((s, l) => s + l.deltaUsed, 0);
+  const content =
+    header.join(',') +
+    '\n' +
+    rows.join('\n') +
+    `\n# 共${logs.length}条记录，净变动 ${totalDelta > 0 ? '+' : ''}${totalDelta} 课时`;
+
+  return {
+    name,
+    description: `${logs.length}条课时变动记录`,
+    count: logs.length,
+    content,
+    type: 'lesson_log'
+  };
+};
+
+export const buildBatchCourseSummaryByRange = (
+  startDate: string,
+  endDate: string,
+  courses: Course[],
+  allAttendanceRecords?: AttendanceRecord[]
+): ExportItem[] => {
+  const result: ExportItem[] = [];
+
+  result.push(buildCourseSummaryExport(startDate, endDate, courses, allAttendanceRecords));
+
+  const byClassroom: Record<string, Course[]> = {};
+  courses.forEach((c) => {
+    if (!byClassroom[c.classroom]) byClassroom[c.classroom] = [];
+    byClassroom[c.classroom].push(c);
+  });
+
+  Object.keys(byClassroom).sort().forEach((room) => {
+    const roomCourses = byClassroom[room];
+    const name = `${CLASSROOM_MAP[room as 'A' | 'B' | 'C']}-${dayjs(startDate).format('M月D日')}课程表`;
+    const item = buildCourseSummaryExport(startDate, endDate, roomCourses, allAttendanceRecords);
+    result.push({ ...item, name });
+  });
+
+  return result;
 };

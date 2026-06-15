@@ -1,4 +1,4 @@
-import { Student, Course, AttendanceRecord } from '@/types';
+import { Student, Course, AttendanceRecord, RechargeRecord } from '@/types';
 import dayjs from 'dayjs';
 
 const now = dayjs();
@@ -320,5 +320,68 @@ export const mockAttendanceRecords: AttendanceRecord[] = [
     courseId: 'c10',
     status: 'present',
     checkedAt: now.subtract(1, 'day').hour(14).toISOString()
+  }
+];
+
+export const mockRechargeRecords: RechargeRecord[] = [
+  {
+    id: 'r1',
+    studentId: 's1',
+    amount: 20,
+    beforeTotal: 20,
+    afterTotal: 40,
+    beforeRemaining: 18,
+    afterRemaining: 38,
+    operator: '前台小李',
+    remark: '续费半年卡',
+    createdAt: now.subtract(2, 'month').toISOString()
+  },
+  {
+    id: 'r2',
+    studentId: 's3',
+    amount: 12,
+    beforeTotal: 12,
+    afterTotal: 24,
+    beforeRemaining: 5,
+    afterRemaining: 17,
+    operator: '前台小李',
+    remark: '季度续费',
+    createdAt: now.subtract(1, 'month').toISOString()
+  },
+  {
+    id: 'r3',
+    studentId: 's6',
+    amount: 32,
+    beforeTotal: 0,
+    afterTotal: 32,
+    beforeRemaining: 0,
+    afterRemaining: 32,
+    operator: '王老师',
+    remark: '新生报名',
+    createdAt: now.subtract(5, 'month').toISOString()
+  },
+  {
+    id: 'r4',
+    studentId: 's7',
+    amount: 20,
+    beforeTotal: 0,
+    afterTotal: 20,
+    beforeRemaining: 0,
+    afterRemaining: 20,
+    operator: '前台小李',
+    remark: '首次报名',
+    createdAt: now.subtract(3, 'month').toISOString()
+  },
+  {
+    id: 'r5',
+    studentId: 's10',
+    amount: 36,
+    beforeTotal: 0,
+    afterTotal: 36,
+    beforeRemaining: 0,
+    afterRemaining: 36,
+    operator: '王老师',
+    remark: '年卡报名',
+    createdAt: now.subtract(4, 'month').toISOString()
   }
 ];

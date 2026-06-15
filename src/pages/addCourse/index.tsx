@@ -2,7 +2,14 @@ import React, { useState, useMemo, useEffect } from 'react';
 import { View, Text, Input, Button, ScrollView } from '@tarojs/components';
 import Taro from '@tarojs/taro';
 import { useAppStore } from '@/store/appStore';
-import { ClassType, AgeGroup, CLASS_TYPE_MAP, AGE_GROUP_MAP, CLASSROOM_MAP, WARNING_LESSON_THRESHOLD } from '@/types';
+import {
+  ClassType,
+  AgeGroup,
+  CLASS_TYPE_MAP,
+  AGE_GROUP_MAP,
+  CLASSROOM_MAP,
+  WARNING_LESSON_THRESHOLD
+} from '@/types';
 import classnames from 'classnames';
 import dayjs from 'dayjs';
 import styles from './index.module.scss';
@@ -15,14 +22,17 @@ const timeSlots = [
   { start: '15:00', end: '16:00', label: '下午第二节' },
   { start: '16:00', end: '17:00', label: '下午第三节' },
   { start: '14:30', end: '16:00', label: '下午长课90分' },
-  { start: '09:00', end: '10:30', label: '上午长课90分' },
+  { start: '09:00', end: '10:30', label: '上午长课90分' }
 ];
+
+const weekdayLabels = ['一', '二', '三', '四', '五', '六', '日'];
 
 const AddCoursePage: React.FC = () => {
   const students = useAppStore((s) => s.students);
   const courses = useAppStore((s) => s.courses);
   const addCourse = useAppStore((s) => s.addCourse);
   const checkTimeConflict = useAppStore((s) => s.checkTimeConflict);
+  const getConflictCourses = useAppStore((s) => s.getConflictCourses);
 
   const [classType, setClassType] = useState<ClassType>('piano');
   const [ageGroup, setAgeGroup] = useState<AgeGroup>('6-8');
@@ -33,16 +43,15 @@ const AddCoursePage: React.FC = () => {
   const [endTime, setEndTime] = useState('10:00');
   const [selectedStudents, setSelectedStudents] = useState<string[]>([]);
 
+  const [calendarMonth, setCalendarMonth] = useState(dayjs().format('YYYY-MM'));
+
   const isConflict = useMemo(() => {
     return checkTimeConflict(classroom, date, startTime, endTime);
   }, [courses, classroom, date, startTime, endTime]);
 
-  const conflictInfo = useMemo(() => {
-    if (!isConflict) return null;
-    return courses.find(
-      (c) => c.classroom === classroom && c.date === date &&
-      !(c.endTime <= startTime || c.startTime >= endTime)
-    );
+  const conflictCourses = useMemo(() => {
+    if (!isConflict) return [];
+    return getConflictCourses(classroom, date, startTime, endTime);
   }, [isConflict, courses, classroom, date, startTime, endTime]);
 
   const availableStudents = useMemo(() => {
@@ -72,17 +81,96 @@ const AddCoursePage: React.FC = () => {
     }
   };
 
+  const calendarDays = useMemo(() => {
+    const monthStart = dayjs(calendarMonth + '-01');
+    const startDayOfWeek = monthStart.day() === 0 ? 6 : monthStart.day() - 1;
+    const daysInMonth = monthStart.daysInMonth();
+    const prevMonthDays = monthStart.subtract(1, 'month').daysInMonth();
+
+    const days: {
+      date: string;
+      dayNum: number;
+      isOtherMonth: boolean;
+      isToday: boolean;
+      isSelected: boolean;
+      hasCourse: boolean;
+    }[] = [];
+
+    for (let i = startDayOfWeek - 1; i >= 0; i--) {
+      const d = monthStart.subtract(i + 1, 'day');
+      const dateStr = d.format('YYYY-MM-DD');
+      days.push({
+        date: dateStr,
+        dayNum: d.date(),
+        isOtherMonth: true,
+        isToday: dateStr === dayjs().format('YYYY-MM-DD'),
+        isSelected: dateStr === date,
+        hasCourse: courses.some((c) => c.date === dateStr)
+      });
+    }
+
+    for (let i = 1; i <= daysInMonth; i++) {
+      const d = monthStart.date(i);
+      const dateStr = d.format('YYYY-MM-DD');
+      days.push({
+        date: dateStr,
+        dayNum: i,
+        isOtherMonth: false,
+        isToday: dateStr === dayjs().format('YYYY-MM-DD'),
+        isSelected: dateStr === date,
+        hasCourse: courses.some((c) => c.date === dateStr)
+      });
+    }
+
+    const remaining = 42 - days.length;
+    for (let i = 1; i <= remaining; i++) {
+      const d = monthStart.add(daysInMonth + i - 1, 'day');
+      const dateStr = d.format('YYYY-MM-DD');
+      days.push({
+        date: dateStr,
+        dayNum: i,
+        isOtherMonth: true,
+        isToday: dateStr === dayjs().format('YYYY-MM-DD'),
+        isSelected: dateStr === date,
+        hasCourse: courses.some((c) => c.date === dateStr)
+      });
+    }
+
+    return days;
+  }, [calendarMonth, date, courses]);
+
   const quickDates = useMemo(() => {
-    return [0, 1, 2, 6].map((offset) => {
-      const d = dayjs().add(offset, 'day');
-      return {
-        value: d.format('YYYY-MM-DD'),
-        label: offset === 0 ? '今天' : offset === 1 ? '明天' : offset === 2 ? '后天' : '下周日',
-        date: d.format('M月D日'),
-        week: ['日', '一', '二', '三', '四', '五', '六'][d.day()]
-      };
-    });
+    const nextMonday = dayjs().add(8 - (dayjs().day() === 0 ? 7 : dayjs().day()), 'day');
+    const nextMonth1st = dayjs().add(1, 'month').date(1);
+    return [
+      { value: dayjs().format('YYYY-MM-DD'), label: '今天' },
+      { value: dayjs().add(1, 'day').format('YYYY-MM-DD'), label: '明天' },
+      { value: dayjs().add(2, 'day').format('YYYY-MM-DD'), label: '后天' },
+      { value: nextMonday.format('YYYY-MM-DD'), label: '下周一' },
+      { value: nextMonth1st.format('YYYY-MM-DD'), label: '下月1号' }
+    ];
   }, []);
+
+  const handleDateSelect = (dateStr: string) => {
+    setDate(dateStr);
+    if (dayjs(dateStr).format('YYYY-MM') !== calendarMonth) {
+      setCalendarMonth(dayjs(dateStr).format('YYYY-MM'));
+    }
+  };
+
+  const prevMonth = () => {
+    setCalendarMonth(dayjs(calendarMonth).subtract(1, 'month').format('YYYY-MM'));
+  };
+
+  const nextMonth = () => {
+    setCalendarMonth(dayjs(calendarMonth).add(1, 'month').format('YYYY-MM'));
+  };
+
+  const goToday = () => {
+    const today = dayjs().format('YYYY-MM-DD');
+    setDate(today);
+    setCalendarMonth(dayjs().format('YYYY-MM'));
+  };
 
   const handleSlotSelect = (start: string, end: string) => {
     setStartTime(start);
@@ -137,6 +225,8 @@ const AddCoursePage: React.FC = () => {
       Taro.showToast({ title: result.message || '排课失败', icon: 'none' });
     }
   };
+
+  const monthTitle = dayjs(calendarMonth).format('YYYY年M月');
 
   return (
     <ScrollView className={styles.page} scrollY>
@@ -202,34 +292,67 @@ const AddCoursePage: React.FC = () => {
         </View>
 
         <View className={styles.formItem}>
-          <Text className={styles.label}>
-            <Text className={styles.required}>*</Text>上课日期
-          </Text>
-          <View className={styles.dateRow}>
-            {quickDates.map((d) => (
-              <View
-                key={d.value}
-                className={classnames(styles.dateCell, date === d.value && styles.active)}
-                onClick={() => setDate(d.value)}
-              >
-                <Text className={classnames(styles.dateCellLabel, date === d.value && styles.active)}>
-                  {d.label} · 周{d.week}
-                </Text>
-                <Text className={classnames(styles.dateCellValue, date === d.value && styles.active)}>
-                  {d.date}
-                </Text>
-              </View>
-            ))}
+          <View className={styles.label}>
+            <Text className={styles.required}>*</Text>
+            <Text>上课日期</Text>
+            <Text
+              className={styles.goTodayBtn}
+              onClick={goToday}
+            >
+              回到今天
+            </Text>
           </View>
-          <View className={styles.dateRow} style={{ marginTop: 16 }}>
-            <View className={styles.inputWrap} style={{ flex: 1 }}>
-              <Input
-                className={styles.input}
-                type="number"
-                placeholder="或选择日期 YYYY-MM-DD"
-                value={date}
-                onInput={(e) => setDate(e.detail.value)}
-              />
+
+          <View className={styles.calendarSection}>
+            <View className={styles.calendarHeader}>
+              <View className={styles.calendarNavBtn} onClick={prevMonth}>
+                ‹
+              </View>
+              <Text className={styles.calendarTitle}>{monthTitle}</Text>
+              <View className={styles.calendarNavBtn} onClick={nextMonth}>
+                ›
+              </View>
+            </View>
+
+            <View className={styles.calendarWeekdays}>
+              {weekdayLabels.map((w) => (
+                <Text key={w} className={styles.weekdayCell}>
+                  {w}
+                </Text>
+              ))}
+            </View>
+
+            <View className={styles.calendarDays}>
+              {calendarDays.map((d) => (
+                <View
+                  key={d.date}
+                  className={classnames(
+                    styles.dayCell,
+                    d.isOtherMonth && styles.otherMonth,
+                    d.isToday && styles.today,
+                    d.isSelected && styles.selected,
+                    d.hasCourse && styles.hasCourse
+                  )}
+                  onClick={() => handleDateSelect(d.date)}
+                >
+                  <Text className={styles.dayNum}>{d.dayNum}</Text>
+                </View>
+              ))}
+            </View>
+
+            <View className={styles.quickDateRow}>
+              {quickDates.map((qd) => (
+                <Text
+                  key={qd.value}
+                  className={classnames(
+                    styles.quickDateChip,
+                    date === qd.value && styles.active
+                  )}
+                  onClick={() => handleDateSelect(qd.value)}
+                >
+                  {qd.label}
+                </Text>
+              ))}
             </View>
           </View>
         </View>
@@ -239,20 +362,23 @@ const AddCoursePage: React.FC = () => {
             <Text className={styles.required}>*</Text>选择教室
           </Text>
           <View className={styles.optionGrid3}>
-            {(['A', 'B', 'C'] as const).map((opt) => (
-              <View
-                key={opt}
-                className={classnames(
-                  styles.optionItem,
-                  classroom === opt && styles.active,
-                  isConflict && classroom === opt && styles.warning
-                )}
-                onClick={() => setClassroom(opt)}
-              >
-                <Text className={styles.optionLabel}>教室</Text>
-                <Text className={styles.optionValue}>{CLASSROOM_MAP[opt]}</Text>
-              </View>
-            ))}
+            {(['A', 'B', 'C'] as const).map((opt) => {
+              const hasConflictToday = isConflict && classroom === opt;
+              return (
+                <View
+                  key={opt}
+                  className={classnames(
+                    styles.optionItem,
+                    classroom === opt && styles.active,
+                    hasConflictToday && styles.warning
+                  )}
+                  onClick={() => setClassroom(opt)}
+                >
+                  <Text className={styles.optionLabel}>教室</Text>
+                  <Text className={styles.optionValue}>{CLASSROOM_MAP[opt]}</Text>
+                </View>
+              );
+            })}
           </View>
         </View>
 
@@ -286,17 +412,28 @@ const AddCoursePage: React.FC = () => {
           </View>
           <Text className={styles.tip}>
             💡 已选择 {startTime} - {endTime}（
-            {Math.round((parseInt(endTime.split(':')[0]) * 60 + parseInt(endTime.split(':')[1]) -
-              parseInt(startTime.split(':')[0]) * 60 - parseInt(startTime.split(':')[1])) / 60)}小时）
+            {Math.round(
+              (parseInt(endTime.split(':')[0]) * 60 +
+                parseInt(endTime.split(':')[1]) -
+                parseInt(startTime.split(':')[0]) * 60 -
+                parseInt(startTime.split(':')[1])) /
+                60
+            )}
+            小时）
           </Text>
 
-          {isConflict && conflictInfo && (
+          {isConflict && conflictCourses.length > 0 && (
             <View className={styles.conflictBox}>
               <Text className={styles.conflictTitle}>⚠️ 时间冲突</Text>
               <Text className={styles.conflictDesc}>
-                {CLASSROOM_MAP[conflictInfo.classroom]} 在此时段已有安排：
-                {'\n'}{CLASS_TYPE_MAP[conflictInfo.classType]}（{AGE_GROUP_MAP[conflictInfo.ageGroup]}）
-                {'\n'}{conflictInfo.startTime} - {conflictInfo.endTime} · {conflictInfo.teacher}
+                {CLASSROOM_MAP[classroom]} 在此时段已有 {conflictCourses.length} 个安排：
+                {'\n'}
+                {conflictCourses
+                  .map(
+                    (c, i) =>
+                      `${i + 1}. ${CLASS_TYPE_MAP[c.classType]}（${AGE_GROUP_MAP[c.ageGroup]}）${c.startTime}-${c.endTime} · ${c.teacher}老师`
+                  )
+                  .join('\n')}
                 {'\n'}请更换教室或调整时间段。
               </Text>
             </View>
@@ -307,10 +444,7 @@ const AddCoursePage: React.FC = () => {
       <View className={styles.formCard}>
         <View className={styles.studentHeader}>
           <Text className={styles.label}>👥 选择学生</Text>
-          <Text
-            className={styles.selectCount}
-            onClick={selectAllStudents}
-          >
+          <Text className={styles.selectCount} onClick={selectAllStudents}>
             {selectedStudents.length === availableStudents.length && availableStudents.length > 0
               ? '取消全选'
               : '全选全部'}
@@ -320,7 +454,8 @@ const AddCoursePage: React.FC = () => {
         {availableStudents.length > 0 ? (
           <View className={styles.studentList}>
             {availableStudents.map((s) => {
-              const isWarn = s.remainingLessons > 0 && s.remainingLessons <= WARNING_LESSON_THRESHOLD;
+              const isWarn =
+                s.remainingLessons > 0 && s.remainingLessons <= WARNING_LESSON_THRESHOLD;
               const isDanger = s.remainingLessons <= 0;
               const selected = selectedStudents.includes(s.id);
               return (
@@ -334,7 +469,9 @@ const AddCoursePage: React.FC = () => {
                   </View>
                   <View className={styles.studentMeta}>
                     <Text className={styles.studentName}>{s.name}</Text>
-                    <Text className={styles.studentDesc}>{s.parentPhone} · {s.usedLessons}/{s.totalLessons}节</Text>
+                    <Text className={styles.studentDesc}>
+                      {s.parentPhone} · {s.usedLessons}/{s.totalLessons}节
+                    </Text>
                   </View>
                   <Text
                     className={classnames(
@@ -353,7 +490,7 @@ const AddCoursePage: React.FC = () => {
         ) : (
           <View style={{ padding: 48, textAlign: 'center' }}>
             <Text style={{ fontSize: 24, color: '#94A3B8' }}>
-              当前班级下暂无学生，请先在"学生"页面添加对应班级的学生
+              当前班级下暂无学生，请先在「学生」页面添加对应班级的学生
             </Text>
           </View>
         )}
@@ -371,10 +508,7 @@ const AddCoursePage: React.FC = () => {
         >
           取消
         </Button>
-        <Button
-          className={classnames(styles.btn, 'primary')}
-          onClick={handleSubmit}
-        >
+        <Button className={classnames(styles.btn, 'primary')} onClick={handleSubmit}>
           {isConflict ? '时间冲突' : '确认排课'}
         </Button>
       </View>

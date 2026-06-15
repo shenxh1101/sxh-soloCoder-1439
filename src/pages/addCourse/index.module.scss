@@ -38,6 +38,17 @@
   display: flex;
   align-items: center;
   gap: $spacing-xs;
+  flex: 1;
+}
+
+.goTodayBtn {
+  font-size: $font-size-xs;
+  color: $color-primary;
+  font-weight: $font-weight-medium;
+  margin-left: auto;
+  padding: 4rpx 16rpx;
+  background: $color-primary-bg;
+  border-radius: $radius-sm;
 }
 
 .required {
@@ -323,6 +334,137 @@
   font-size: $font-size-xs;
   color: $color-info;
   line-height: $line-height-loose;
+}
+
+.calendarSection {
+  margin-bottom: $spacing-lg;
+}
+
+.calendarHeader {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: $spacing-md;
+}
+
+.calendarNavBtn {
+  width: 56rpx;
+  height: 56rpx;
+  @include flex-center;
+  background: $color-bg-hover;
+  border-radius: $radius-md;
+  font-size: $font-size-lg;
+  color: $color-text-secondary;
+  font-weight: $font-weight-bold;
+
+  &:active {
+    background: $color-bg-active;
+  }
+}
+
+.calendarTitle {
+  font-size: $font-size-md;
+  font-weight: $font-weight-semibold;
+  color: $color-text-primary;
+}
+
+.calendarWeekdays {
+  display: grid;
+  grid-template-columns: repeat(7, 1fr);
+  margin-bottom: $spacing-xs;
+}
+
+.weekdayCell {
+  text-align: center;
+  font-size: $font-size-xs;
+  color: $color-text-tertiary;
+  padding: $spacing-sm 0;
+  font-weight: $font-weight-medium;
+}
+
+.calendarDays {
+  display: grid;
+  grid-template-columns: repeat(7, 1fr);
+  gap: 4rpx;
+}
+
+.dayCell {
+  aspect-ratio: 1;
+  @include flex-center;
+  flex-direction: column;
+  border-radius: $radius-md;
+  font-size: $font-size-sm;
+  color: $color-text-primary;
+  position: relative;
+  transition: all $transition-base;
+
+  &:active {
+    background: $color-bg-hover;
+  }
+
+  &.otherMonth {
+    color: $color-text-disabled;
+  }
+
+  &.today {
+    font-weight: $font-weight-bold;
+    color: $color-primary;
+  }
+
+  &.selected {
+    background: $color-primary;
+    color: $color-text-white;
+    font-weight: $font-weight-semibold;
+  }
+
+  &.hasCourse {
+    &::after {
+      content: '';
+      position: absolute;
+      bottom: 8rpx;
+      left: 50%;
+      transform: translateX(-50%);
+      width: 8rpx;
+      height: 8rpx;
+      border-radius: 50%;
+      background: $color-success;
+    }
+
+    &.selected::after {
+      background: $color-text-white;
+    }
+  }
+}
+
+.dayNum {
+  line-height: 1;
+}
+
+.quickDateRow {
+  display: flex;
+  gap: $spacing-sm;
+  margin-top: $spacing-md;
+  flex-wrap: wrap;
+}
+
+.quickDateChip {
+  padding: $spacing-xs $spacing-md;
+  background: $color-bg-hover;
+  border-radius: 999rpx;
+  font-size: $font-size-xs;
+  color: $color-text-secondary;
+  border: 2rpx solid transparent;
+  transition: all $transition-base;
+
+  &:active {
+    background: $color-bg-active;
+  }
+
+  &.active {
+    background: $color-primary-bg;
+    color: $color-primary;
+    border-color: $color-primary;
+  }
 }
 
 .bottomBar {

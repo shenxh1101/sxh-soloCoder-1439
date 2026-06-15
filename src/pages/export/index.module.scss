@@ -150,3 +150,236 @@
   line-height: $line-height-loose;
   list-style: disc;
 }
+
+.tabs {
+  display: flex;
+  background: $color-bg-hover;
+  border-radius: $radius-lg;
+  padding: 6rpx;
+  margin-bottom: $spacing-lg;
+}
+
+.tabItem {
+  flex: 1;
+  text-align: center;
+  padding: $spacing-sm 0;
+  border-radius: $radius-md;
+  font-size: $font-size-sm;
+  color: $color-text-secondary;
+  font-weight: $font-weight-medium;
+  transition: all $transition-base;
+
+  &.active {
+    background: $color-bg-card;
+    color: $color-primary;
+    font-weight: $font-weight-semibold;
+    box-shadow: $shadow-sm;
+  }
+}
+
+.toolBar {
+  display: flex;
+  gap: $spacing-sm;
+  margin-bottom: $spacing-md;
+  flex-wrap: wrap;
+  align-items: center;
+}
+
+.datePicker {
+  padding: $spacing-sm $spacing-md;
+  background: $color-bg-card;
+  border-radius: $radius-md;
+  font-size: $font-size-sm;
+  color: $color-text-primary;
+  border: 2rpx solid $color-border;
+  box-shadow: $shadow-sm;
+  display: flex;
+  align-items: center;
+  gap: $spacing-xs;
+}
+
+.dateNavBtn {
+  width: 56rpx;
+  height: 56rpx;
+  @include flex-center;
+  background: $color-bg-card;
+  border-radius: $radius-md;
+  font-size: $font-size-md;
+  color: $color-text-secondary;
+  border: 2rpx solid $color-border;
+  box-shadow: $shadow-sm;
+  font-weight: $font-weight-bold;
+
+  &:active {
+    background: $color-bg-hover;
+  }
+}
+
+.batchBar {
+  position: sticky;
+  top: 0;
+  z-index: 10;
+  background: $color-primary;
+  color: $color-text-white;
+  border-radius: $radius-lg;
+  padding: $spacing-md $spacing-lg;
+  margin-bottom: $spacing-md;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  box-shadow: $shadow-card;
+}
+
+.batchInfo {
+  font-size: $font-size-sm;
+}
+
+.batchCount {
+  font-size: $font-size-lg;
+  font-weight: $font-weight-bold;
+}
+
+.batchBtn {
+  @include button-reset;
+  padding: $spacing-sm $spacing-lg;
+  background: $color-text-white;
+  color: $color-primary;
+  border-radius: $radius-button;
+  font-size: $font-size-sm;
+  font-weight: $font-weight-semibold;
+
+  &:active {
+    opacity: 0.9;
+  }
+}
+
+.resultList {
+  display: flex;
+  flex-direction: column;
+  gap: $spacing-sm;
+}
+
+.resultItem {
+  background: $color-bg-card;
+  border-radius: $radius-md;
+  padding: $spacing-md $spacing-lg;
+  display: flex;
+  align-items: center;
+  gap: $spacing-md;
+  box-shadow: $shadow-sm;
+  border-left: 6rpx solid $color-primary;
+  transition: all $transition-base;
+
+  &:active {
+    background: $color-bg-hover;
+  }
+
+  &.lessons {
+    border-left-color: $color-success;
+  }
+
+  &.attendance {
+    border-left-color: $color-primary;
+  }
+
+  &.recharge {
+    border-left-color: $color-warning;
+  }
+}
+
+.resultIcon {
+  font-size: 36rpx;
+  flex-shrink: 0;
+}
+
+.resultMeta {
+  flex: 1;
+  min-width: 0;
+}
+
+.resultName {
+  font-size: $font-size-sm;
+  font-weight: $font-weight-semibold;
+  color: $color-text-primary;
+  margin-bottom: 4rpx;
+  @include text-ellipsis-multi(1);
+}
+
+.resultDesc {
+  font-size: $font-size-xs;
+  color: $color-text-tertiary;
+}
+
+.resultCount {
+  font-size: $font-size-sm;
+  font-weight: $font-weight-bold;
+  color: $color-primary;
+  flex-shrink: 0;
+}
+
+.copyBtn {
+  @include button-reset;
+  padding: $spacing-xs $spacing-md;
+  background: $color-primary-bg;
+  color: $color-primary;
+  border-radius: $radius-sm;
+  font-size: $font-size-xs;
+  font-weight: $font-weight-medium;
+  flex-shrink: 0;
+
+  &:active {
+    background: $color-primary;
+    color: $color-text-white;
+  }
+}
+
+.emptyResults {
+  padding: $spacing-xl;
+  text-align: center;
+}
+
+.emptyText {
+  font-size: $font-size-sm;
+  color: $color-text-tertiary;
+  line-height: $line-height-loose;
+}
+
+.sectionSubtitle {
+  font-size: $font-size-xs;
+  color: $color-text-tertiary;
+  margin-bottom: $spacing-md;
+  line-height: $line-height-loose;
+}
+
+.label {
+  font-size: $font-size-sm;
+  font-weight: $font-weight-medium;
+  color: $color-text-primary;
+  margin-bottom: $spacing-sm;
+  display: flex;
+  align-items: center;
+  gap: $spacing-xs;
+}
+
+.statBadges {
+  display: flex;
+  gap: $spacing-sm;
+  margin-bottom: $spacing-md;
+  flex-wrap: wrap;
+}
+
+.statBadge {
+  padding: $spacing-xs $spacing-md;
+  background: $color-bg-card;
+  border-radius: $radius-sm;
+  font-size: $font-size-xs;
+  color: $color-text-secondary;
+  box-shadow: $shadow-sm;
+}
+
+.statBadgeNum {
+  font-weight: $font-weight-bold;
+  color: $color-primary;
+  margin-left: 4rpx;
+}
+

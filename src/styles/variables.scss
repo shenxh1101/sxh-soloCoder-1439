@@ -34,6 +34,7 @@ $button-height-md: 80rpx; // 常规按钮（主流标准）
 $button-height-lg: 96rpx; // 大按钮（主要操作、底部固定）
 
 // 阴影（语义化）
+$shadow-sm: 0 1rpx 4rpx rgba(0, 0, 0, 0.05); // 小阴影（标签、小卡片）
 $shadow-card: 0 2rpx 12rpx rgba(0, 0, 0, 0.08); // 卡片阴影
 $shadow-card-hover: 0 4rpx 20rpx rgba(0, 0, 0, 0.12); // 卡片悬浮
 $shadow-float: 0 4rpx 16rpx rgba(0, 0, 0, 0.1); // 浮层阴影（如筛选栏、底部操作栏）

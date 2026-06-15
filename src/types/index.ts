@@ -36,6 +36,19 @@ export interface AttendanceRecord {
   checkedAt: string;
 }
 
+export interface RechargeRecord {
+  id: string;
+  studentId: string;
+  amount: number;
+  beforeTotal: number;
+  afterTotal: number;
+  beforeRemaining: number;
+  afterRemaining: number;
+  operator?: string;
+  remark?: string;
+  createdAt: string;
+}
+
 export const CLASS_TYPE_MAP: Record<ClassType, string> = {
   piano: '钢琴班',
   art: '美术班',

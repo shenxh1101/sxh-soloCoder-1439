@@ -1,10 +1,11 @@
 import React, { useState, useMemo } from 'react';
-import { View, Text, Input, Button } from '@tarojs/components';
+import { View, Text, Input, Button, ScrollView } from '@tarojs/components';
 import Taro, { useRouter } from '@tarojs/taro';
 import { useAppStore } from '@/store/appStore';
 import { CLASS_TYPE_MAP, AGE_GROUP_MAP, WARNING_LESSON_THRESHOLD } from '@/types';
 import EmptyState from '@/components/EmptyState';
 import classnames from 'classnames';
+import dayjs from 'dayjs';
 import styles from './index.module.scss';
 
 const avatarColors = ['#6366F1', '#EC4899', '#F97316', '#78350F', '#10B981', '#06B6D4'];
@@ -17,8 +18,11 @@ const StudentDetailPage: React.FC = () => {
   const attendanceRecords = useAppStore((s) => s.attendanceRecords);
   const updateStudent = useAppStore((s) => s.updateStudent);
   const deleteStudent = useAppStore((s) => s.deleteStudent);
+  const renewLessons = useAppStore((s) => s.renewLessons);
+  const getRechargeRecordsByStudent = useAppStore((s) => s.getRechargeRecordsByStudent);
 
   const [renewAmount, setRenewAmount] = useState('');
+  const [activeRecordTab, setActiveRecordTab] = useState<'attendance' | 'recharge'>('attendance');
 
   const history = useMemo(() => {
     if (!student) return [];
@@ -31,11 +35,22 @@ const StudentDetailPage: React.FC = () => {
         return {
           id: rec.id,
           title: course ? `${CLASS_TYPE_MAP[course.classType]} (${course.startTime})` : '课程',
-          date: new Date(rec.checkedAt).toLocaleDateString(),
+          date: dayjs(rec.checkedAt).format('YYYY-MM-DD HH:mm'),
           classroom: course ? course.classroom : '-'
         };
       });
   }, [student, attendanceRecords, courses]);
+
+  const rechargeRecords = useMemo(() => {
+    if (!student) return [];
+    return getRechargeRecordsByStudent(student.id).slice(0, 10);
+  }, [student, getRechargeRecordsByStudent]);
+
+  const lastRecharge = useMemo(() => {
+    if (!student) return undefined;
+    const records = getRechargeRecordsByStudent(student.id);
+    return records.length > 0 ? records[0] : undefined;
+  }, [student, getRechargeRecordsByStudent]);
 
   if (!student) {
     return (
@@ -83,15 +98,16 @@ const StudentDetailPage: React.FC = () => {
     }
     Taro.showModal({
       title: '确认续费',
-      content: `确定为"${student.name}"续费 ${amount} 节课吗？`,
+      content: `确定为「${student.name}」续费 ${amount} 节课吗？\n\n续费前剩余：${student.remainingLessons}节\n续费后剩余：${student.remainingLessons + amount}节`,
       success: (res) => {
         if (res.confirm) {
-          updateStudent(student.id, {
-            totalLessons: student.totalLessons + amount,
-            remainingLessons: student.remainingLessons + amount
-          });
-          setRenewAmount('');
-          Taro.showToast({ title: '续费成功', icon: 'success' });
+          const result = renewLessons(student.id, amount, '前台', '手动续费');
+          if (result.success) {
+            setRenewAmount('');
+            Taro.showToast({ title: '续费成功', icon: 'success' });
+          } else {
+            Taro.showToast({ title: result.message || '续费失败', icon: 'none' });
+          }
         }
       }
     });
@@ -168,6 +184,15 @@ const StudentDetailPage: React.FC = () => {
             </View>
             <Button className={styles.renewBtn} onClick={handleRenew}>续费</Button>
           </View>
+
+          {lastRecharge && (
+            <View className={styles.lastRecharge}>
+              <Text className={styles.lastRechargeLabel}>最近续费</Text>
+              <Text className={styles.lastRechargeValue}>
+                +{lastRecharge.amount}节 · {dayjs(lastRecharge.createdAt).format('M月D日')}
+              </Text>
+            </View>
+          )}
         </View>
 
         <View className={styles.card}>
@@ -195,29 +220,89 @@ const StudentDetailPage: React.FC = () => {
         </View>
 
         <View className={styles.card}>
-          <Text className={styles.cardTitle}>📚 最近上课记录</Text>
-          {history.length > 0 ? (
-            history.map((h) => (
-              <View key={h.id} className={styles.historyItem}>
-                <View className={styles.historyLeft}>
-                  <View
-                    className={styles.historyIcon}
-                    style={{ background: '#D1FAE5' }}
-                  >
-                    ✅
-                  </View>
-                  <View className={styles.historyInfo}>
-                    <Text className={styles.historyTitle}>{h.title}</Text>
-                    <Text className={styles.historyDate}>{h.date} · 教室{h.classroom}</Text>
-                  </View>
-                </View>
-                <Text className={classnames(styles.historyValue, 'minus')}>-1节</Text>
-              </View>
-            ))
-          ) : (
-            <Text style={{ color: '#94A3B8', fontSize: '24rpx', padding: '24rpx 0' }}>
-              暂无上课记录
+          <View className={styles.recordTabs}>
+            <Text
+              className={classnames(
+                styles.recordTab,
+                activeRecordTab === 'attendance' && styles.active
+              )}
+              onClick={() => setActiveRecordTab('attendance')}
+            >
+              📚 上课记录
             </Text>
+            <Text
+              className={classnames(
+                styles.recordTab,
+                activeRecordTab === 'recharge' && styles.active
+              )}
+              onClick={() => setActiveRecordTab('recharge')}
+            >
+              💳 续费记录
+            </Text>
+          </View>
+
+          {activeRecordTab === 'attendance' && (
+            <View>
+              {history.length > 0 ? (
+                history.map((h) => (
+                  <View key={h.id} className={styles.historyItem}>
+                    <View className={styles.historyLeft}>
+                      <View
+                        className={styles.historyIcon}
+                        style={{ background: '#D1FAE5' }}
+                      >
+                        ✅
+                      </View>
+                      <View className={styles.historyInfo}>
+                        <Text className={styles.historyTitle}>{h.title}</Text>
+                        <Text className={styles.historyDate}>{h.date} · 教室{h.classroom}</Text>
+                      </View>
+                    </View>
+                    <Text className={classnames(styles.historyValue, 'minus')}>-1节</Text>
+                  </View>
+                ))
+              ) : (
+                <View className={styles.emptyRecord}>
+                  <Text>暂无上课记录</Text>
+                </View>
+              )}
+            </View>
+          )}
+
+          {activeRecordTab === 'recharge' && (
+            <View>
+              {rechargeRecords.length > 0 ? (
+                rechargeRecords.map((r) => (
+                  <View key={r.id} className={styles.historyItem}>
+                    <View className={styles.historyLeft}>
+                      <View
+                        className={styles.historyIcon}
+                        style={{ background: '#FEF3C7' }}
+                      >
+                        💳
+                      </View>
+                      <View className={styles.historyInfo}>
+                        <Text className={styles.historyTitle}>
+                          续费 +{r.amount}节
+                          {r.remark && ` · ${r.remark}`}
+                        </Text>
+                        <Text className={styles.historyDate}>
+                          {dayjs(r.createdAt).format('YYYY-MM-DD HH:mm')}
+                          {r.operator && ` · ${r.operator}`}
+                        </Text>
+                      </View>
+                    </View>
+                    <Text className={classnames(styles.historyValue, 'plus')}>
+                      +{r.amount}节
+                    </Text>
+                  </View>
+                ))
+              ) : (
+                <View className={styles.emptyRecord}>
+                  <Text>暂无续费记录</Text>
+                </View>
+              )}
+            </View>
           )}
         </View>
       </View>

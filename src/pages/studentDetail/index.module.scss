@@ -351,3 +351,66 @@
     opacity: 0.85;
   }
 }
+
+.lastRecharge {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-top: $spacing-md;
+  padding: $spacing-sm $spacing-md;
+  background: $color-warning-bg;
+  border-radius: $radius-sm;
+}
+
+.lastRechargeLabel {
+  font-size: $font-size-xs;
+  color: $color-warning;
+  font-weight: $font-weight-medium;
+}
+
+.lastRechargeValue {
+  font-size: $font-size-sm;
+  color: $color-warning;
+  font-weight: $font-weight-semibold;
+}
+
+.recordTabs {
+  display: flex;
+  gap: $spacing-lg;
+  margin-bottom: $spacing-md;
+  padding-bottom: $spacing-sm;
+  border-bottom: 2rpx solid $color-divider;
+}
+
+.recordTab {
+  font-size: $font-size-sm;
+  color: $color-text-tertiary;
+  font-weight: $font-weight-medium;
+  padding-bottom: $spacing-xs;
+  position: relative;
+  transition: all $transition-base;
+
+  &.active {
+    color: $color-primary;
+    font-weight: $font-weight-semibold;
+
+    &::after {
+      content: '';
+      position: absolute;
+      bottom: -10rpx;
+      left: 50%;
+      transform: translateX(-50%);
+      width: 32rpx;
+      height: 6rpx;
+      background: $color-primary;
+      border-radius: 3rpx;
+    }
+  }
+}
+
+.emptyRecord {
+  padding: $spacing-lg 0;
+  text-align: center;
+  font-size: $font-size-xs;
+  color: $color-text-tertiary;
+}

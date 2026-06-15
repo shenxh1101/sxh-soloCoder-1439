@@ -12,6 +12,7 @@ const AddStudentPage: React.FC = () => {
   const existing = useAppStore((s) => (editId ? s.getStudentById(editId) : undefined));
   const addStudent = useAppStore((s) => s.addStudent);
   const updateStudent = useAppStore((s) => s.updateStudent);
+  const updateTotalLessons = useAppStore((s) => s.updateTotalLessons);
 
   const [name, setName] = useState('');
   const [parentPhone, setParentPhone] = useState('');
@@ -57,9 +58,11 @@ const AddStudentPage: React.FC = () => {
         name: name.trim(),
         parentPhone: parentPhone.trim(),
         classType,
-        ageGroup,
-        totalLessons
+        ageGroup
       });
+      if (totalLessons !== existing.totalLessons) {
+        updateTotalLessons(existing.id, totalLessons);
+      }
       Taro.showToast({ title: '修改成功', icon: 'success' });
     } else {
       addStudent({
@@ -67,8 +70,7 @@ const AddStudentPage: React.FC = () => {
         parentPhone: parentPhone.trim(),
         classType,
         ageGroup,
-        totalLessons,
-        remainingLessons: totalLessons
+        totalLessons
       });
       Taro.showToast({ title: '添加成功', icon: 'success' });
     }

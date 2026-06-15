@@ -13,6 +13,8 @@ export const mockStudents: Student[] = [
     totalLessons: 40,
     usedLessons: 38,
     remainingLessons: 2,
+    cumulativeTotal: 40,
+    cumulativeUsed: 38,
     createdAt: now.subtract(3, 'month').toISOString()
   },
   {
@@ -24,6 +26,8 @@ export const mockStudents: Student[] = [
     totalLessons: 30,
     usedLessons: 15,
     remainingLessons: 15,
+    cumulativeTotal: 30,
+    cumulativeUsed: 15,
     createdAt: now.subtract(2, 'month').toISOString()
   },
   {
@@ -35,6 +39,8 @@ export const mockStudents: Student[] = [
     totalLessons: 24,
     usedLessons: 23,
     remainingLessons: 1,
+    cumulativeTotal: 24,
+    cumulativeUsed: 23,
     createdAt: now.subtract(4, 'month').toISOString()
   },
   {
@@ -46,6 +52,8 @@ export const mockStudents: Student[] = [
     totalLessons: 36,
     usedLessons: 12,
     remainingLessons: 24,
+    cumulativeTotal: 36,
+    cumulativeUsed: 12,
     createdAt: now.subtract(1, 'month').toISOString()
   },
   {
@@ -57,6 +65,8 @@ export const mockStudents: Student[] = [
     totalLessons: 48,
     usedLessons: 10,
     remainingLessons: 38,
+    cumulativeTotal: 48,
+    cumulativeUsed: 10,
     createdAt: now.subtract(2, 'month').toISOString()
   },
   {
@@ -68,6 +78,8 @@ export const mockStudents: Student[] = [
     totalLessons: 32,
     usedLessons: 31,
     remainingLessons: 1,
+    cumulativeTotal: 32,
+    cumulativeUsed: 31,
     createdAt: now.subtract(5, 'month').toISOString()
   },
   {
@@ -79,6 +91,8 @@ export const mockStudents: Student[] = [
     totalLessons: 20,
     usedLessons: 18,
     remainingLessons: 2,
+    cumulativeTotal: 20,
+    cumulativeUsed: 18,
     createdAt: now.subtract(3, 'month').toISOString()
   },
   {
@@ -90,6 +104,8 @@ export const mockStudents: Student[] = [
     totalLessons: 40,
     usedLessons: 8,
     remainingLessons: 32,
+    cumulativeTotal: 40,
+    cumulativeUsed: 8,
     createdAt: now.subtract(1, 'month').toISOString()
   },
   {
@@ -101,6 +117,8 @@ export const mockStudents: Student[] = [
     totalLessons: 30,
     usedLessons: 5,
     remainingLessons: 25,
+    cumulativeTotal: 30,
+    cumulativeUsed: 5,
     createdAt: now.subtract(20, 'day').toISOString()
   },
   {
@@ -112,6 +130,8 @@ export const mockStudents: Student[] = [
     totalLessons: 36,
     usedLessons: 34,
     remainingLessons: 2,
+    cumulativeTotal: 36,
+    cumulativeUsed: 34,
     createdAt: now.subtract(4, 'month').toISOString()
   },
   {
@@ -123,6 +143,8 @@ export const mockStudents: Student[] = [
     totalLessons: 24,
     usedLessons: 6,
     remainingLessons: 18,
+    cumulativeTotal: 24,
+    cumulativeUsed: 6,
     createdAt: now.subtract(1, 'month').toISOString()
   },
   {
@@ -134,6 +156,8 @@ export const mockStudents: Student[] = [
     totalLessons: 30,
     usedLessons: 2,
     remainingLessons: 28,
+    cumulativeTotal: 30,
+    cumulativeUsed: 2,
     createdAt: now.subtract(15, 'day').toISOString()
   }
 ];

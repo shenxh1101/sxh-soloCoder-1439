@@ -77,17 +77,53 @@ const AddCoursePage: React.FC = () => {
   }, [isConflict, courses, classroom, date, startTime, endTime, editId]);
 
   const availableStudents = useMemo(() => {
-    return students.filter(
+    const filtered = students.filter(
       (s) => s.classType === classType && s.ageGroup === ageGroup
     );
-  }, [students, classType, ageGroup]);
+    if (editId && existing) {
+      const existingIds = new Set(existing.studentIds);
+      const extraStudents = students.filter(
+        (s) => existingIds.has(s.id) && !filtered.some((f) => f.id === s.id)
+      );
+      return [...filtered, ...extraStudents];
+    }
+    return filtered;
+  }, [students, classType, ageGroup, editId, existing]);
 
   const classOptions: ClassType[] = ['piano', 'art', 'dance', 'calligraphy'];
   const ageOptions: AgeGroup[] = ['3-5', '6-8', '9-12', '13+'];
 
+  const [initialized, setInitialized] = useState(false);
+
   useEffect(() => {
-    setSelectedStudents([]);
+    if (initialized) {
+      if (editId && existing) {
+        const classChanged = classType !== existing.classType;
+        const ageChanged = ageGroup !== existing.ageGroup;
+        if (classChanged || ageChanged) {
+          Taro.showModal({
+            title: '班级/年龄段已变更',
+            content: '原学生名单可能不匹配，建议重新选择学生。是否清空当前名单？',
+            cancelText: '保留名单',
+            confirmText: '清空重选',
+            success: (res) => {
+              if (res.confirm) {
+                setSelectedStudents([]);
+              }
+            }
+          });
+        }
+      } else {
+        setSelectedStudents([]);
+      }
+    }
   }, [classType, ageGroup]);
+
+  useEffect(() => {
+    if (existing) {
+      setInitialized(true);
+    }
+  }, []);
 
   const toggleStudent = (sid: string) => {
     setSelectedStudents((prev) =>

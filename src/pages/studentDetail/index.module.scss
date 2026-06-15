@@ -315,6 +315,18 @@
   }
 }
 
+.cumulativeInfo {
+  margin-top: $spacing-sm;
+  padding: $spacing-xs $spacing-sm;
+  background: $color-bg-hover;
+  border-radius: $radius-sm;
+}
+
+.cumulativeLabel {
+  font-size: $font-size-xs;
+  color: $color-text-tertiary;
+}
+
 .renewInput {
   display: flex;
   align-items: center;

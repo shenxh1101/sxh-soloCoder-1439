@@ -26,7 +26,7 @@ interface AppState {
   rechargeRecords: RechargeRecord[];
   lessonLogs: LessonLog[];
 
-  addStudent: (data: Omit<Student, 'id' | 'createdAt' | 'usedLessons' | 'remainingLessons'> & { totalLessons: number }) => void;
+  addStudent: (data: Omit<Student, 'id' | 'createdAt' | 'usedLessons' | 'remainingLessons' | 'cumulativeTotal' | 'cumulativeUsed'> & { totalLessons: number }) => void;
   updateStudent: (id: string, data: Partial<Student>) => void;
   deleteStudent: (id: string) => void;
   getStudentById: (id: string) => Student | undefined;
@@ -78,13 +78,17 @@ const isTimeOverlap = (start1: string, end1: string, start2: string, end2: strin
 };
 
 const clampLessons = (student: Student): Student => {
-  const used = Math.max(0, Math.min(student.totalLessons, student.usedLessons));
   const total = Math.max(0, student.totalLessons);
+  const used = Math.max(0, Math.min(total, student.usedLessons));
+  const cumulativeTotal = Math.max(student.cumulativeTotal || total, total);
+  const cumulativeUsed = Math.max(student.cumulativeUsed || used, used);
   return {
     ...student,
     totalLessons: total,
     usedLessons: used,
-    remainingLessons: Math.max(0, total - used)
+    remainingLessons: Math.max(0, total - used),
+    cumulativeTotal,
+    cumulativeUsed
   };
 };
 
@@ -112,6 +116,8 @@ export const useAppStore = create<AppState>()(
           totalLessons: total,
           usedLessons: 0,
           remainingLessons: total,
+          cumulativeTotal: total,
+          cumulativeUsed: 0,
           createdAt: dayjs().toISOString()
         };
         set((state) => ({ students: [...state.students, newStudent] }));
@@ -121,11 +127,13 @@ export const useAppStore = create<AppState>()(
       updateStudent: (id, data) => {
         set((state) => ({
           students: updateStudentInList(state.students, id, (s) => {
-            const updated = { ...s, ...data };
-            if (data.totalLessons !== undefined || data.usedLessons !== undefined) {
-              return clampLessons(updated);
-            }
-            return updated;
+            const safeData = { ...data };
+            delete safeData.totalLessons;
+            delete safeData.usedLessons;
+            delete safeData.remainingLessons;
+            delete safeData.cumulativeTotal;
+            delete safeData.cumulativeUsed;
+            return { ...s, ...safeData };
           })
         }));
         console.log('[Student] Update student:', id);
@@ -211,7 +219,8 @@ export const useAppStore = create<AppState>()(
               ? clampLessons({
                   ...s,
                   totalLessons: afterTotal,
-                  remainingLessons: afterRemaining
+                  remainingLessons: afterRemaining,
+                  cumulativeTotal: (s.cumulativeTotal || beforeTotal) + amount
                 })
               : s
           ),
@@ -281,7 +290,10 @@ export const useAppStore = create<AppState>()(
               ? clampLessons({
                   ...s,
                   usedLessons: newUsed,
-                  remainingLessons: afterRemaining
+                  remainingLessons: afterRemaining,
+                  cumulativeUsed: delta > 0
+                    ? (s.cumulativeUsed || beforeUsed) + delta
+                    : s.cumulativeUsed || beforeUsed
                 })
               : s
           ),
@@ -343,7 +355,10 @@ export const useAppStore = create<AppState>()(
                   ...s,
                   totalLessons: newTotal,
                   usedLessons: clampedUsed,
-                  remainingLessons: afterRemaining
+                  remainingLessons: afterRemaining,
+                  cumulativeTotal: newTotal > beforeTotal
+                    ? (s.cumulativeTotal || beforeTotal) + (newTotal - beforeTotal)
+                    : s.cumulativeTotal || beforeTotal
                 })
               : s
           ),

@@ -11,6 +11,7 @@ import {
   ExportItem,
   buildRemainingLessonsExport,
   buildBatchRemainingLessons,
+  buildBatchPeriodLessons,
   buildBatchAttendanceByDate,
   buildAttendanceExport,
   buildRechargeExport,
@@ -37,9 +38,12 @@ const ExportPage: React.FC = () => {
 
   const [activeTab, setActiveTab] = useState<TabKey>('lessons');
   const [classFilter, setClassFilter] = useState<ClassType | 'all'>('all');
+  const [lessonsMode, setLessonsMode] = useState<'snapshot' | 'period'>('period');
   const [attendanceDate, setAttendanceDate] = useState(dayjs().format('YYYY-MM-DD'));
   const [rangeStart, setRangeStart] = useState(dayjs().startOf('month').format('YYYY-MM-DD'));
   const [rangeEnd, setRangeEnd] = useState(dayjs().endOf('month').format('YYYY-MM-DD'));
+  const [lessonsRangeStart, setLessonsRangeStart] = useState(dayjs().startOf('month').format('YYYY-MM-DD'));
+  const [lessonsRangeEnd, setLessonsRangeEnd] = useState(dayjs().endOf('month').format('YYYY-MM-DD'));
 
   const lastRecharges = useMemo(() => {
     const map: Record<string, RechargeRecord | undefined> = {};
@@ -50,11 +54,14 @@ const ExportPage: React.FC = () => {
   }, [students, rechargeRecords]);
 
   const lessonsResults = useMemo<ExportItem[]>(() => {
+    if (lessonsMode === 'period') {
+      return buildBatchPeriodLessons(lessonsRangeStart, lessonsRangeEnd, students, lessonLogs, rechargeRecords);
+    }
     if (classFilter === 'all') {
       return buildBatchRemainingLessons(students, lastRecharges);
     }
     return [buildRemainingLessonsExport(students, lastRecharges, classFilter)];
-  }, [students, lastRecharges, classFilter]);
+  }, [lessonsMode, lessonsRangeStart, lessonsRangeEnd, students, lessonLogs, rechargeRecords, lastRecharges, classFilter]);
 
   const attendanceResults = useMemo<ExportItem[]>(() => {
     return buildBatchAttendanceByDate(attendanceDate, courses, students, attendanceRecords);
@@ -168,9 +175,11 @@ const ExportPage: React.FC = () => {
 
       {activeTab === 'lessons' && (
         <View className={styles.section}>
-          <Text className={styles.sectionTitle}>剩余课时清单</Text>
+          <Text className={styles.sectionTitle}>剩余课时汇总</Text>
           <Text className={styles.sectionSubtitle}>
-            按剩余课时从少到多排序，导出后可直接发给前台做续费提醒
+            {lessonsMode === 'period'
+              ? '按时间段导出课时汇总，含区间变动明细，方便月底对账'
+              : '当前课时快照，按剩余课时从少到多排序，发给前台做续费提醒'}
           </Text>
 
           <View className={styles.statBadges}>
@@ -188,21 +197,79 @@ const ExportPage: React.FC = () => {
             </View>
           </View>
 
-          <Text className={styles.label}>按班级筛选：</Text>
+          <Text className={styles.label}>导出模式：</Text>
           <View className={styles.classPicker}>
-            {classOptions.map((opt) => (
-              <Text
-                key={opt}
-                className={classnames(
-                  styles.classChip,
-                  classFilter === opt && styles.active
-                )}
-                onClick={() => setClassFilter(opt)}
-              >
-                {opt === 'all' ? '全部班级' : CLASS_TYPE_MAP[opt]}
-              </Text>
-            ))}
+            <Text
+              className={classnames(styles.classChip, lessonsMode === 'period' && styles.active)}
+              onClick={() => setLessonsMode('period')}
+            >
+              📅 时间段汇总
+            </Text>
+            <Text
+              className={classnames(styles.classChip, lessonsMode === 'snapshot' && styles.active)}
+              onClick={() => setLessonsMode('snapshot')}
+            >
+              📸 当前快照
+            </Text>
           </View>
+
+          {lessonsMode === 'period' && (
+            <View>
+              <Text className={styles.label}>选择日期范围：</Text>
+              <View className={styles.rangePicker}>
+                <View className={styles.rangeInput}>
+                  📅 {dayjs(lessonsRangeStart).format('M月D日')}
+                </View>
+                <Text className={styles.rangeSep}>至</Text>
+                <View className={styles.rangeInput}>
+                  📅 {dayjs(lessonsRangeEnd).format('M月D日')}
+                </View>
+              </View>
+
+              <View className={styles.classPicker}>
+                {[
+                  { s: dayjs().startOf('month').format('YYYY-MM-DD'), e: dayjs().endOf('month').format('YYYY-MM-DD'), l: '本月' },
+                  { s: dayjs().subtract(1, 'month').startOf('month').format('YYYY-MM-DD'), e: dayjs().subtract(1, 'month').endOf('month').format('YYYY-MM-DD'), l: '上月' },
+                  { s: dayjs().startOf('week').format('YYYY-MM-DD'), e: dayjs().endOf('week').format('YYYY-MM-DD'), l: '本周' },
+                  { s: dayjs().subtract(1, 'week').startOf('week').format('YYYY-MM-DD'), e: dayjs().subtract(1, 'week').endOf('week').format('YYYY-MM-DD'), l: '上周' }
+                ].map((d, i) => (
+                  <Text
+                    key={i}
+                    className={classnames(
+                      styles.classChip,
+                      lessonsRangeStart === d.s && lessonsRangeEnd === d.e && styles.active
+                    )}
+                    onClick={() => {
+                      setLessonsRangeStart(d.s);
+                      setLessonsRangeEnd(d.e);
+                    }}
+                  >
+                    {d.l}
+                  </Text>
+                ))}
+              </View>
+            </View>
+          )}
+
+          {lessonsMode === 'snapshot' && (
+            <View>
+              <Text className={styles.label}>按班级筛选：</Text>
+              <View className={styles.classPicker}>
+                {classOptions.map((opt) => (
+                  <Text
+                    key={opt}
+                    className={classnames(
+                      styles.classChip,
+                      classFilter === opt && styles.active
+                    )}
+                    onClick={() => setClassFilter(opt)}
+                  >
+                    {opt === 'all' ? '全部班级' : CLASS_TYPE_MAP[opt]}
+                  </Text>
+                ))}
+              </View>
+            </View>
+          )}
         </View>
       )}
 

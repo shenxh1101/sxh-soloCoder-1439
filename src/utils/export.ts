@@ -91,6 +91,8 @@ export const buildRemainingLessonsExport = (
     '总课时',
     '已用课时',
     '剩余课时',
+    '累计总课时',
+    '累计已用',
     '课时状态',
     '最近续费时间',
     '最近续费节数',
@@ -113,6 +115,8 @@ export const buildRemainingLessonsExport = (
       s.totalLessons,
       s.usedLessons,
       s.remainingLessons,
+      s.cumulativeTotal,
+      s.cumulativeUsed,
       status,
       recharge ? dayjs(recharge.createdAt).format('YYYY-MM-DD') : '-',
       recharge ? `+${recharge.amount}节` : '-',
@@ -537,6 +541,127 @@ export const buildBatchCourseSummaryByRange = (
     const name = `${CLASSROOM_MAP[room as 'A' | 'B' | 'C']}-${dayjs(startDate).format('M月D日')}课程表`;
     const item = buildCourseSummaryExport(startDate, endDate, roomCourses, allAttendanceRecords);
     result.push({ ...item, name });
+  });
+
+  return result;
+};
+
+export const buildPeriodLessonsExport = (
+  startDate: string,
+  endDate: string,
+  students: Student[],
+  lessonLogs: LessonLog[],
+  rechargeRecords: RechargeRecord[],
+  classType?: ClassType
+): ExportItem => {
+  const filtered = classType
+    ? students.filter((s) => s.classType === classType)
+    : students;
+
+  const periodLogs = lessonLogs.filter((l) => {
+    const d = dayjs(l.createdAt);
+    return d.isAfter(dayjs(startDate).subtract(1, 'day')) && d.isBefore(dayjs(endDate).add(1, 'day'));
+  });
+
+  const periodRecharges = rechargeRecords.filter((r) => {
+    const d = dayjs(r.createdAt);
+    return d.isAfter(dayjs(startDate).subtract(1, 'day')) && d.isBefore(dayjs(endDate).add(1, 'day'));
+  });
+
+  const name = classType
+    ? `${CLASS_TYPE_MAP[classType]}${dayjs(startDate).format('M月D日')}-${dayjs(endDate).format('M月D日')}课时汇总`
+    : `${dayjs(startDate).format('M月D日')}-${dayjs(endDate).format('M月D日')}学生课时汇总`;
+
+  const header = [
+    '学生姓名', '班级', '年龄段',
+    '当前总课时', '当前已用', '当前剩余',
+    '累计总课时', '累计已用',
+    '区间内上课', '区间内续费', '区间内调整',
+    '最近续费时间', '最近续费节数'
+  ];
+
+  const lastRechargeMap = new Map<string, RechargeRecord>();
+  periodRecharges.forEach((r) => {
+    const existing = lastRechargeMap.get(r.studentId);
+    if (!existing || new Date(r.createdAt) > new Date(existing.createdAt)) {
+      lastRechargeMap.set(r.studentId, r);
+    }
+  });
+
+  const rows = filtered.map((s) => {
+    const studentLogs = periodLogs.filter((l) => l.studentId === s.id);
+    const periodAttended = studentLogs
+      .filter((l) => l.type === 'attendance_present')
+      .reduce((sum, l) => sum + l.deltaUsed, 0);
+    const periodCancelled = studentLogs
+      .filter((l) => l.type === 'attendance_cancel')
+      .reduce((sum, l) => sum + Math.abs(l.deltaUsed), 0);
+    const periodUsed = periodAttended - periodCancelled;
+
+    const studentRecharges = periodRecharges.filter((r) => r.studentId === s.id);
+    const periodRenew = studentRecharges.reduce((sum, r) => sum + r.amount, 0);
+
+    const periodAdjust = studentLogs
+      .filter((l) => l.type === 'adjust_total' || l.type === 'adjust_used' || l.type === 'manual')
+      .reduce((sum, l) => sum + l.deltaTotal - l.deltaUsed, 0);
+
+    const lastRecharge = lastRechargeMap.get(s.id);
+
+    return [
+      s.name,
+      CLASS_TYPE_MAP[s.classType],
+      AGE_GROUP_MAP[s.ageGroup],
+      s.totalLessons,
+      s.usedLessons,
+      s.remainingLessons,
+      s.cumulativeTotal,
+      s.cumulativeUsed,
+      periodUsed,
+      periodRenew,
+      periodAdjust,
+      lastRecharge ? dayjs(lastRecharge.createdAt).format('YYYY-MM-DD') : '-',
+      lastRecharge ? lastRecharge.amount : '-'
+    ].join(',');
+  });
+
+  const totalPeriodUsed = filtered.reduce((sum, s) => {
+    const studentLogs = periodLogs.filter((l) => l.studentId === s.id);
+    const attended = studentLogs.filter((l) => l.type === 'attendance_present').reduce((s2, l) => s2 + l.deltaUsed, 0);
+    const cancelled = studentLogs.filter((l) => l.type === 'attendance_cancel').reduce((s2, l) => s2 + Math.abs(l.deltaUsed), 0);
+    return sum + attended - cancelled;
+  }, 0);
+  const totalPeriodRenew = periodRecharges.reduce((sum, r) => sum + r.amount, 0);
+
+  const content =
+    header.join(',') +
+    '\n' +
+    rows.join('\n') +
+    `\n# 共${filtered.length}名学生，区间上课${totalPeriodUsed}节，续费${totalPeriodRenew}节`;
+
+  return {
+    name,
+    description: `${filtered.length}名学生 · 上课${totalPeriodUsed}节 · 续费${totalPeriodRenew}节`,
+    count: filtered.length,
+    content,
+    type: 'lessons'
+  };
+};
+
+export const buildBatchPeriodLessons = (
+  startDate: string,
+  endDate: string,
+  students: Student[],
+  lessonLogs: LessonLog[],
+  rechargeRecords: RechargeRecord[]
+): ExportItem[] => {
+  const result: ExportItem[] = [];
+  result.push(buildPeriodLessonsExport(startDate, endDate, students, lessonLogs, rechargeRecords));
+
+  (['piano', 'art', 'dance', 'calligraphy'] as ClassType[]).forEach((ct) => {
+    const count = students.filter((s) => s.classType === ct).length;
+    if (count > 0) {
+      result.push(buildPeriodLessonsExport(startDate, endDate, students, lessonLogs, rechargeRecords, ct));
+    }
   });
 
   return result;

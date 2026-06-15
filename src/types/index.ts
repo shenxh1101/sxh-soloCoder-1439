@@ -11,6 +11,8 @@ export interface Student {
   totalLessons: number;
   usedLessons: number;
   remainingLessons: number;
+  cumulativeTotal: number;
+  cumulativeUsed: number;
   createdAt: string;
 }
 

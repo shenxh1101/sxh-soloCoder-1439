@@ -177,6 +177,14 @@ const StudentDetailPage: React.FC = () => {
             </View>
           </View>
 
+          {(student.cumulativeTotal !== student.totalLessons || student.cumulativeUsed !== student.usedLessons) && (
+            <View className={styles.cumulativeInfo}>
+              <Text className={styles.cumulativeLabel}>
+                历史累计：购{student.cumulativeTotal}节 / 上{student.cumulativeUsed}节
+              </Text>
+            </View>
+          )}
+
           <View className={styles.renewInput}>
             <View className={styles.renewField}>
               <Text className={styles.renewLabel}>续课时数</Text>
